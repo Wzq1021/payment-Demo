@@ -1,0 +1,7 @@
+version: 2
+authtoken: 2y7pewijWJKZCHqI5ZtuzoWbvl3_3LxEhGHtdYPbEPCmzbR5
+tunnels:
+  web:
+    proto: http
+    addr: 3000
+    domain: steady-adequately-dingo.ngrok-free.app

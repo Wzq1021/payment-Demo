@@ -1,0 +1,799 @@
+const express = require('express');
+const crypto = require('crypto');
+const axios = require('axios');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/linkpay', express.static(path.join(__dirname, 'public/linkpay')));
+app.use('/dropin', express.static(path.join(__dirname, 'public/dropin')));
+app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
+
+// LinkPay Configuration
+const keyLinkPay = 'd5e2c210d2114b1993ee68244ed88fce';
+const WEBHOOK_LINKPAY_URL = 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io';
+
+// Dropin Configuration
+const signKeyDropin = 'd5e2c210d2114b1993ee68244ed88fce';
+const keyID = '630805e2d532478aba9cedb9cea14397';
+const tokenStore = new Map();
+
+// Shared State Management for LinkPay
+const orderState = {
+  orders: {},
+  save(orderId, totalAmount, refundedAmount = 0, status = 'pending') {
+    this.orders[orderId] = { totalAmount, refundedAmount, status };
+  },
+  get(orderId) {
+    return this.orders[orderId];
+  },
+  updateRefundedAmount(orderId, amount) {
+    if (this.orders[orderId]) {
+      this.orders[orderId].refundedAmount += Number(amount);
+    }
+  },
+  updateStatus(orderId, status) {
+    if (this.orders[orderId]) {
+      this.orders[orderId].status = status;
+    }
+  }
+};
+
+const notificationState = {
+  processed: new Set(),
+  add(notifyId) {
+    this.processed.add(notifyId);
+  },
+  has(notifyId) {
+    return this.processed.has(notifyId);
+  }
+};
+
+// Shared Utility Function: Get DateTime String
+function getDateTimeString() {
+  const date = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}+08:00`;
+}
+
+// LinkPay: Create Payment Link
+app.post('/linkpay/create-payment', async (req, res) => {
+  try {
+    const { paymentMethod } = req.body;
+    const amount = 100.00;
+    if (!paymentMethod || !['Alipay', 'Visa'].includes(paymentMethod)) {
+      return res.status(400).json({ error: '无效的支付方式' });
+    }
+
+    const method = 'POST';
+    const urlPath = '/g2/v0/payment/mer/S005188/evo.e-commerce.linkpay';
+    const dateTime = getDateTimeString();
+    const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+
+    console.log('=== LinkPay X-Trace-Id ===\n' + traceId);
+
+    const body = {
+      merchantOrderInfo: {
+        merchantOrderID: 'DEMO_' + Date.now(),
+        merchantOrderTime: dateTime,
+        enabledPaymentMethod: [paymentMethod]
+      },
+      transAmount: {
+        currency: 'HKD',
+        value: String(amount)
+      },
+      tradeInfo: {
+        tradeType: 'Sale of goods',
+        goodsName: 'Test Item',
+        goodsDescription: 'Just a test item',
+        totalQuantity: 1
+      },
+      payerInfo: {
+        customerName: 'Test User',
+        mail: 'test@example.com'
+      },
+      validTime: 5,
+      returnUrl: '/linkpay/index.html',
+      webhook: WEBHOOK_LINKPAY_URL,
+      paymentMethod: {
+        type: paymentMethod === 'Alipay' ? 'e-wallet' : 'card',
+        paymentMethodVariant: paymentMethod
+      }
+    };
+
+    const bodyString = JSON.stringify(body);
+    const stringToSign = [method, urlPath, dateTime, keyLinkPay, msgID, bodyString].join('\n');
+    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+    console.log('String to Sign:', stringToSign);
+    console.log('Generated Signature:', signature);
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': signature,
+      'DateTime': dateTime,
+      'MsgID': msgID,
+      'SignType': 'SHA256',
+      'X-Trace-Id': traceId
+    };
+
+    console.log('Request Headers:', headers);
+
+    const response = await axios.post(
+      'https://hkg-counter-uat.everonet.com' + urlPath,
+      bodyString,
+      { headers }
+    );
+
+    console.log('Result:', response.data);
+
+    if (response.data?.result?.code === 'S0000' && response.data?.linkUrl) {
+      const orderId = response.data.merchantOrderInfo?.merchantOrderID;
+      orderState.save(orderId, Number(amount));
+      return res.json({
+        message: '创建支付链接成功',
+        paymentLink: response.data.linkUrl,
+        orderId,
+        expires: response.data.expiryTime
+      });
+    } else {
+      return res.status(500).json({
+        error: '创建支付链接失败',
+        details: response.data
+      });
+    }
+  } catch (err) {
+    console.error('调用失败:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    return res.status(500).json({
+      error: '创建支付链接失败',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// LinkPay: Check Payment Status
+app.get('/linkpay/check-payment/:orderId', async (req, res) => {
+  console.log(`[LinkPay GET] /check-payment/${req.params.orderId}`);
+
+  try {
+    const { orderId } = req.params;
+    if (!orderId) {
+      return res.status(400).json({ error: '缺少 orderId 参数' });
+    }
+
+    const order = orderState.get(orderId);
+    if (order?.status === 'success') {
+      return res.json({
+        orderId,
+        status: 'Paid',
+        message: '支付状态已从本地获取'
+      });
+    }
+
+    const dateTime = getDateTimeString();
+    const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+    const urlPath = `/g2/v0/payment/mer/S005188/evo.e-commerce.linkpay/${orderId}`;
+
+    const stringToSign = ['GET', urlPath, dateTime, keyLinkPay, msgID].join('\n');
+    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+    console.log('String to Sign:', stringToSign);
+    console.log('Generated Signature:', signature);
+
+    const url = 'https://hkg-counter-uat.everonet.com' + urlPath;
+
+    const headers = {
+      'Accept': 'application/json',
+      'Authorization': signature,
+      'Content-Type': 'application/json',
+      'DateTime': dateTime,
+      'MsgID': msgID,
+      'SignType': 'SHA256',
+      'X-Trace-Id': traceId
+    };
+
+    console.log('Request Headers:', headers);
+
+    const response = await axios.get(url, { headers });
+
+    console.log('Result:', response.data);
+
+    if (response.data?.result?.code === 'S0000') {
+      const paymentStatus = response.data.merchantOrderInfo?.status || 'Unknown';
+      if (paymentStatus === 'Paid') {
+        orderState.updateStatus(orderId, 'success');
+      }
+      return res.json({
+        orderId,
+        status: paymentStatus,
+        message: '支付状态查询成功',
+        result: response.data.result
+      });
+    } else {
+      return res.status(500).json({
+        error: '查询支付状态失败',
+        details: response.data
+      });
+    }
+  } catch (err) {
+    console.error('查询失败:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    return res.status(500).json({
+      error: '查询支付状态失败',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// LinkPay: Webhook Handling
+app.post('/linkpay/webhook', (req, res) => {
+  console.log('=== LinkPay 收到 Webhook ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+
+  const { eventCode, merchantOrderInfo, transactionInfo, refund, result } = req.body || {};
+  const { merchantOrderID, status } = merchantOrderInfo || {};
+  const transInfo = transactionInfo || refund || {};
+  const { transAmount, merchantTransInfo } = transInfo;
+  const { value: amount } = transAmount || {};
+  const { merchantTransID, merchantTransTime } = merchantTransInfo || {};
+
+  if (!eventCode || !merchantOrderID || !status || !amount || !merchantTransID || !merchantTransTime || !result) {
+    console.error('[Webhook Invalid] Missing required fields:', JSON.stringify(req.body, null, 2));
+    return res.status(400).send('FAIL');
+  }
+
+  if (result.code !== 'S0000') {
+    console.error('[Webhook Invalid] Invalid result code:', result);
+    return res.status(400).send('FAIL');
+  }
+
+  const receivedSign = req.headers['authorization'];
+  const dateTime = req.headers['datetime'];
+  const msgID = req.headers['msgid'];
+  const signType = req.headers['signtype'];
+
+  if (!receivedSign || !dateTime || !msgID || signType !== 'SHA256') {
+    console.error('[Webhook Invalid] Missing or invalid headers:', { receivedSign, status });
+    return res.status(400).send('FAIL');
+  }
+
+  const notifyId = `${merchantOrderID}_${merchantTransID}_${eventCode}`;
+
+  if (notificationState.has(notifyId)) {
+    console.log('[Webhook Duplicate]', { notifyId });
+    return res.status(200).send('SUCCESS');
+  }
+
+  const method = 'POST';
+  const urlPath = '/linkpay/webhook';
+  const bodyString = JSON.stringify(req.body);
+  const stringToSign = [method, urlPath, dateTime, keyLinkPay, msgID, bodyString].join('\n');
+  const computedSign = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+  console.log('[Sign Debug]', { stringToSign, computedSign, receivedSign });
+
+  if (computedSign !== receivedSign) {
+    console.error('[Webhook Error] Signature mismatch', { computedSign, receivedSign });
+    return res.status(400).send('FAIL');
+  }
+
+  const order = orderState.get(merchantOrderID);
+  if (!order) {
+    console.error('[Webhook Invalid] Order not found', { merchantOrderID });
+    return res.status(404).send('FAIL');
+  }
+
+  try {
+    if (eventCode === 'LinkPay' && status === 'Paid' && transactionInfo?.status === 'Captured') {
+      if (Number(order.totalAmount) !== Number(amount)) {
+        console.error('[Webhook Invalid] Amount mismatch', { expected: order.totalAmount, received: amount });
+        return res.status(400).send('FAIL');
+      }
+      orderState.updateStatus(merchantOrderID, 'success');
+      console.log('[Webhook Processed] Payment successful', { merchantOrderID, status: 'Paid', merchantTransID });
+    } else if (eventCode === 'LinkPay Refund' && refund?.status === 'Success') {
+      if (Number(amount) > order.totalAmount - order.refundedAmount) {
+        console.error('[Webhook Invalid] Refund amount exceeds remaining balance', { expected: order.totalAmount - order.refundedAmount, received: amount });
+        return res.status(400).send('FAIL');
+      }
+      orderState.updateRefundedAmount(merchantOrderID, Number(amount));
+      orderState.updateStatus(merchantOrderID, status.toLowerCase());
+      console.log('[Webhook Processed] Refund successful', { merchantOrderID, status, merchantTransID, refundedAmount: amount });
+    } else {
+      console.error('[Webhook Invalid] Unsupported event or status', { eventCode, status, transactionStatus: transactionInfo?.status, refundStatus: refund?.status });
+      return res.status(400).send('FAIL');
+    }
+
+    notificationState.add(notifyId);
+    res.status(200).send('SUCCESS');
+  } catch (err) {
+    console.error('[Webhook Error]', err);
+    res.status(500).send('FAIL');
+  }
+});
+
+// LinkPay: Initiate Refund
+app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  const { amount } = req.body;
+
+  console.log('[LinkPay Refund Request]', { orderId, refundAmount: amount });
+
+  if (!orderId || !amount || isNaN(amount) || Number(amount) <= 0) {
+    return res.status(400).json({ error: '缺少 orderId 或 amount 参数，或无效金额' });
+  }
+
+  const order = orderState.get(orderId);
+  if (!order) {
+    return res.status(404).json({ error: '订单不存在' });
+  }
+  if (order.status !== 'success') {
+    return res.status(400).json({ result: { code: 'B0014', message: '无效订单状态' } });
+  }
+  const remaining = order.totalAmount - order.refundedAmount;
+  if (Number(amount) > remaining) {
+    return res.status(400).json({ error: '退款金额超过剩余余额' });
+  }
+
+  const dateTime = getDateTimeString();
+  const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const traceId = crypto.randomUUID().replace(/-/g, '');
+  const urlPath = `/g2/v0/payment/mer/S005188/evo.e-commerce.linkpayRefund/${orderId}`;
+
+  const refundBody = {
+    merchantTransInfo: {
+      merchantTransID: 'REFUND_' + Date.now(),
+      merchantTransTime: dateTime
+    },
+    transAmount: {
+      currency: 'HKD',
+      value: String(amount)
+    },
+    webhook: WEBHOOK_LINKPAY_URL
+  };
+
+  const stringToSign = ['POST', urlPath, dateTime, keyLinkPay, msgID, JSON.stringify(refundBody)].join('\n');
+  const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': signature,
+    'Content-Type': 'application/json',
+    'DateTime': dateTime,
+    'MsgID': msgID,
+    'SignType': 'SHA256',
+    'X-Trace-Id': traceId
+  };
+
+  try {
+    const response = await axios.post(
+      'https://hkg-counter-uat.everonet.com' + urlPath,
+      refundBody,
+      { headers }
+    );
+
+    console.log('[LinkPay Refund Response]', response.data);
+
+    if (response.data?.result?.code === 'S0000') {
+      orderState.updateRefundedAmount(orderId, Number(amount));
+    }
+
+    return res.json(response.data);
+  } catch (err) {
+    console.error('退款失败:', {
+      message: err.message,
+      response: err.response?.data
+    });
+    return res.status(500).json({ error: '退款失败', details: err.response?.data || err.message });
+  }
+});
+
+// LinkPay: Query Refund Status
+app.get('/linkpay/refund-result/:transId', async (req, res) => {
+  const { transId } = req.params;
+
+  console.log('[LinkPay Refund Status Query]', { transId });
+
+  if (!transId) {
+    return res.status(400).json({ error: '缺少 transId 参数' });
+  }
+
+  const dateTime = getDateTimeString();
+  const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const traceId = crypto.randomUUID().replace(/-/g, '');
+  const urlPath = `/goba/v2/payment/merchants/S005780672/evo.e-commerce/refunded/${transId}`;
+
+  const stringToSign = ['GET', urlPath, dateTime, keyLinkPay, msgID].join('\n');
+  const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': signature,
+    'Content-Type': 'application/json',
+    'DateTime': dateTime,
+    'MsgID': msgID,
+    'SignType': 'SHA256',
+    'X-Trace-Id': traceId
+  };
+
+  try {
+    const response = await axios.get(
+      'https://hkg-counter-uat.everonet.com' + urlPath,
+      { headers }
+    );
+
+    console.log('[LinkPay Refund Status Response]', response.data);
+
+    return res.json(response.data);
+  } catch (err) {
+    console.error('查询退款失败:', {
+      message: err.message,
+      response: err.response?.data
+    });
+    return res.status(500).json({ error: '查询退款失败', details: err.response?.data || err.message });
+  }
+});
+
+// Dropin: Create Payment Link
+app.post('/dropin/create-payment', async (req, res) => {
+  try {
+    const { amount, userReference, paymentMethod } = req.body;
+    if (!amount || !userReference || !paymentMethod) {
+      return res.status(400).json({ error: '缺少 amount, userReference 或 paymentMethod 参数' });
+    }
+
+    const method = 'POST';
+    const urlPath = '/interaction';
+    const dateTime = new Date().toISOString();
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+
+    console.log('=== Dropin X-Trace-Id ===\n' + traceId);
+
+    const body = {
+      merchantOrderInfo: {
+        merchantOrderID: 'DEMO_' + Date.now(),
+        merchantOrderTime: dateTime
+      },
+      transAmount: {
+        currency: 'HKD',
+        value: String(amount)
+      },
+      userInfo: {
+        reference: userReference
+      },
+      paymentMethod: {
+        type: paymentMethod === 'Alipay' ? 'e-wallet' : 'card',
+        paymentMethodVariant: paymentMethod,
+        recurringProcessingModel: 'Subscription'
+      },
+      returnUrl: '/dropin/index.html',
+      webhook: 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io'
+    };
+
+    const bodyString = JSON.stringify(body, null, 0);
+
+    console.log('\n===============');
+    console.log(method);
+    console.log(urlPath);
+    console.log(dateTime);
+    console.log(signKeyDropin);
+    console.log(bodyString);
+    console.log('===============\n');
+
+    const response = await axios.post(
+      'https://sandbox.evonetonline.com' + urlPath,
+      bodyString,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': signKeyDropin,
+          'DateTime': dateTime,
+          'SignType': 'Key-based',
+          'KeyID': keyID,
+          'X-Trace-Id': traceId
+        }
+      }
+    );
+
+    console.log('Result:', response.data);
+
+    if (response.data?.result?.code === 'S0000' && response.data?.linkUrl) {
+      return res.json({
+        message: '创建支付链接成功',
+        paymentLink: response.data.linkUrl,
+        orderId: response.data.merchantOrderInfo?.merchantOrderID,
+        expires: response.data.expiryTime
+      });
+    } else {
+      return res.status(500).json({
+        error: '创建支付链接失败',
+        details: response.data
+      });
+    }
+  } catch (err) {
+    console.error('调用失败:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    return res.status(500).json({
+      error: '创建支付链接失败',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// Dropin: Query Payment Result
+app.get('/dropin/query-payment/:merchantOrderID', async (req, res) => {
+  try {
+    const { merchantOrderID } = req.params;
+    if (!merchantOrderID) {
+      return res.status(400).json({ error: '缺少 merchantOrderID 参数' });
+    }
+
+    const method = 'GET';
+    const urlPath = `/interaction/${merchantOrderID}`;
+    const dateTime = new Date().toISOString();
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+
+    console.log('=== Dropin Query X-Trace-Id ===\n' + traceId);
+    console.log('\n===============');
+    console.log(method);
+    console.log(urlPath);
+    console.log(dateTime);
+    console.log(signKeyDropin);
+    console.log('===============\n');
+
+    const response = await axios.get(
+      'https://sandbox.evonetonline.com' + urlPath,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': signKeyDropin,
+          'DateTime': dateTime,
+          'SignType': 'Key-based',
+          'KeyID': keyID,
+          'X-Trace-Id': traceId
+        }
+      }
+    );
+
+    console.log('Query Result:', JSON.stringify(response.data, null, 2));
+
+    return res.json({
+      message: '查询支付结果成功',
+      result: response.data
+    });
+  } catch (err) {
+    console.error('查询失败:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    return res.status(500).json({
+      error: '查询支付结果失败',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// Dropin: Save Token
+app.post('/dropin/save-token', (req, res) => {
+  const { userReference, token, card, paymentMethod } = req.body;
+  if (!userReference || !token || !paymentMethod) {
+    return res.status(400).json({ error: '缺少 userReference, token 或 paymentMethod 参数' });
+  }
+
+  const tokenData = {
+    token,
+    card: card || {},
+    paymentMethod: paymentMethod || 'unknown'
+  };
+  if (tokenStore.has(userReference)) {
+    console.log(`Token 已经存在 for user: ${userReference}, 更新为: ${JSON.stringify(tokenData)}`);
+  } else {
+    console.log(`保存新 token: ${JSON.stringify(tokenData)} for user: ${userReference}`);
+  }
+  tokenStore.set(userReference, tokenData);
+  console.log('Current tokenStore:', Array.from(tokenStore.entries()));
+  res.json({ message: 'Token 保存成功' });
+});
+
+// Dropin: Check Token
+app.get('/dropin/check-token/:userReference', (req, res) => {
+  const { userReference } = req.params;
+  if (!userReference) {
+    return res.status(400).json({ error: '缺少 userReference 参数' });
+  }
+
+  const hasToken = tokenStore.has(userReference);
+  console.log(`检查 token for user: ${userReference}, 存在: ${hasToken}`);
+  res.json({ hasToken });
+});
+
+// Dropin: Create Subscription Payment
+app.post('/dropin/create-subscription', async (req, res) => {
+  try {
+    const { amount, userReference, paymentMethod } = req.body;
+    if (!amount || !userReference || !paymentMethod) {
+      return res.status(400).json({ error: '缺少 amount, userReference 或 paymentMethod 参数' });
+    }
+
+    const tokenData = tokenStore.get(userReference);
+    if (!tokenData || !tokenData.token) {
+      return res.status(400).json({ error: '未找到与 userReference 关联的 token' });
+    }
+
+    // 验证支付方式
+    if (tokenData.paymentMethod !== paymentMethod && tokenData.paymentMethod !== 'unknown') {
+      console.log(`支付方式不匹配: 前端发送 ${paymentMethod}, token 关联 ${tokenData.paymentMethod}`);
+      return res.status(400).json({
+        error: `支付方式不匹配：token 关联的支付方式为 ${tokenData.paymentMethod}`
+      });
+    }
+
+    const method = 'POST';
+    const urlPath = '/payment';
+    const dateTime = new Date().toISOString();
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+
+    console.log('=== Dropin Subscription X-Trace-Id ===\n' + traceId);
+
+    const body = {
+      merchantTransInfo: {
+        merchantOrderReference: 'SUB_' + Date.now(),
+        merchantTransTime: dateTime
+      },
+      transAmount: {
+        currency: 'HKD',
+        value: String(amount)
+      },
+      paymentMethod: {
+        type: 'token',
+        token: { value: tokenData.token },
+        recurringProcessingModel: 'Subscription'
+      },
+      captureAfterHours: '0',
+      // allowAuthentication: true,
+      returnURL: '/dropin/index.html',
+      webhook: 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io'
+    };
+
+    const bodyString = JSON.stringify(body, null, 0);
+
+    console.log('\n===============');
+    console.log(method);
+    console.log(urlPath);
+    console.log(dateTime);
+    console.log(signKeyDropin);
+    console.log(bodyString);
+    console.log('===============\n');
+
+    const response = await axios.post(
+      'https://sandbox.evonetonline.com' + urlPath,
+      bodyString,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': signKeyDropin,
+          'DateTime': dateTime,
+          'SignType': 'Key-based',
+          'KeyID': keyID,
+          'X-Trace-Id': traceId
+        }
+      }
+    );
+
+    console.log('Subscription Result:', JSON.stringify(response.data, null, 2));
+
+    if (response.data?.result?.code === 'S0000') {
+      const paymentMethodUsed = response.data.paymentMethod?.card?.paymentBrand ||
+                               response.data.paymentMethod?.type ||
+                               response.data.paymentMethod?.paymentMethodVariant ||
+                               paymentMethod;
+      if (response.data.action?.type === 'completed') {
+        return res.json({
+          message: '创建订阅支付成功',
+          orderId: response.data.payment?.merchantTransInfo?.merchantOrderReference,
+          status: response.data.payment?.status || 'captured',
+          paymentMethod: paymentMethodUsed
+        });
+      } else if (response.data.linkUrl) {
+        return res.json({
+          message: '创建订阅支付成功',
+          paymentLink: response.data.linkUrl,
+          orderId: response.data.payment?.merchantTransInfo?.merchantOrderReference,
+          expires: response.data.expiryTime,
+          paymentMethod: paymentMethodUsed
+        });
+      } else {
+        return res.status(500).json({
+          error: '创建订阅支付失败：缺少 paymentLink 或 completed 状态',
+          details: response.data
+        });
+      }
+    } else {
+      return res.status(500).json({
+        error: '创建订阅支付失败',
+        details: response.data
+      });
+    }
+  } catch (err) {
+    console.error('订阅支付失败:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    return res.status(500).json({
+      error: '创建订阅支付失败',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// Dropin: Webhook Handling
+app.post('/dropin/webhook', (req, res) => {
+  console.log('Dropin Webhook received at:', new Date().toISOString());
+  console.log('Webhook headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Webhook body:', JSON.stringify(req.body, null, 2));
+
+  const { paymentMethod, userInfo, result } = req.body;
+  if (!result || result.code !== 'S0000') {
+    console.warn('Webhook invalid: Invalid result code', { result });
+    return res.status(400).send('FAIL');
+  }
+
+  if (paymentMethod?.token?.value && userInfo?.reference) {
+    const tokenData = {
+      token: paymentMethod.token.value,
+      card: paymentMethod.card || {},
+      paymentMethod: paymentMethod.card?.paymentBrand || paymentMethod.type || paymentMethod.paymentMethodVariant || 'unknown'
+    };
+    if (tokenStore.has(userInfo.reference)) {
+      console.log(`Token 已经存在 for user: ${userInfo.reference}, 更新为: ${JSON.stringify(tokenData)}`);
+    } else {
+      console.log(`保存新 token: ${JSON.stringify(tokenData)} for user: ${userInfo.reference}`);
+    }
+    tokenStore.set(userInfo.reference, tokenData);
+    console.log('Current tokenStore:', Array.from(tokenStore.entries()));
+  } else {
+    console.warn('Webhook data invalid:', {
+      hasToken: !!paymentMethod?.token?.value,
+      hasUserReference: !!userInfo?.reference,
+      paymentMethodDetails: paymentMethod
+    });
+    return res.status(400).send('FAIL');
+  }
+  res.status(200).send('SUCCESS');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on:
+    - http://localhost:${PORT}
+    - http://10.30.1.104:${PORT}`);
+});
