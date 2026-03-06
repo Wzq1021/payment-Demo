@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@vercel/edge-config": "^1.0.0",
     "axios": "^1.9.0",
     "body-parser": "^2.2.0",
     "cil-dropin-components": "^1.0.3",

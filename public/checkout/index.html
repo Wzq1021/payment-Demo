@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="安全便捷的在线支付体验">
+  <title>智能支付平台 - 体验未来支付</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const savedLang = localStorage.getItem('language') || 'zh';
+      const translations = {
+        zh: {
+          step1_label: '购物车',
+          step2_label: '支付产品',
+          step3_label: '完成',
+          cart_title: '购物车商品',
+          cart_desc: '选择您要购买的商品',
+          items_label: '商品数量',
+          items_count: '件',
+          subtotal_label: '商品小计：',
+          shipping_label: '运费：',
+          free: '免费',
+          total_label: '总计：',
+          custom_amount_title: '自定义金额',
+          custom_amount_desc: '输入您想要支付的金额',
+          amount_label: '输入支付金额 (HKD)',
+          amount_placeholder: '输入金额',
+          apply_btn_text: '应用',
+          checkout_btn_text: '去结账',
+          reset_cart_text: '重置商品',
+          payment_method_title: '选择支付产品',
+          payment_method_desc: '选择您偏好的支付产品',
+          linkpay_desc: '跳转到支付页面完成支付',
+          dropin_desc: '内嵌式支付，无需跳转',
+          direct_desc: '直连API支付',
+          order_summary_title: '订单摘要',
+          subtotal: '小计',
+          shipping: '运费',
+          final_total_label: '应付总额：',
+          pay_now_btn_text: '立即支付',
+          back_btn_text: '返回购物车',
+          secure_payment: '安全支付',
+          ssl_protection: 'SSL加密保护',
+          payment_amount: '支付金额',
+          evonet_hosted: 'Evonet 托管支付组件',
+          custom_interface: '自定义支付界面',
+          cardholder_name: '持卡人姓名',
+          card_number: '卡号',
+          expiry_date: '有效期 (MM/YY)',
+          cvv: 'CVV',
+          confirm_payment: '确认支付',
+          ssl_protection_text: '您的支付信息受到SSL加密保护',
+          success_title: '支付成功！',
+          success_message: '感谢您的购买，您的订单已成功处理。',
+          order_details_title: '订单详情',
+          order_id_label: '订单号',
+          order_amount_label: '支付金额',
+          order_method_label: '支付方式',
+          order_time_label: '支付时间',
+          copy_order_btn_text: '复制订单信息',
+          new_shopping_btn_text: '继续购物',
+          secure_payment_multi: '安全支付 · 多种方式',
+          footer_text: '下一代智能支付平台',
+          footer_security: '您的支付信息受到SSL加密保护',
+          subscription_title: '订阅管理',
+          subscription_desc: '管理您的订阅计划和支付方式',
+          subscription_first: '首次订阅',
+          subscription_subsequent: '后续订阅',
+          subscription_pay_now: '立即订阅',
+          subscription_check_token: '检查订阅状态',
+          subscription_user_reference: '用户参考ID',
+          subscription_user_reference_placeholder: '输入用户参考ID',
+          subscription_has_token: '已存在订阅支付方式',
+          subscription_no_token: '未找到订阅支付方式',
+          subscription_pay_with_token: '使用已保存的支付方式',
+          subscription_create_token: '创建新的订阅支付方式',
+          subscription_payment_success: '订阅支付成功',
+          subscription_payment_failed: '订阅支付失败',
+          subscription_token_saved: '支付方式已保存，可用于后续订阅',
+          subscription_loading: '加载中...',
+          subscription_error: '订阅操作失败',
+          subscription_confirm_payment: '确认订阅支付'
+        },
+        en: {
+          step1_label: 'Cart',
+          step2_label: 'Payment Product',
+          step3_label: 'Complete',
+          cart_title: 'Shopping Cart',
+          cart_desc: 'Select items to purchase',
+          items_label: 'Items',
+          items_count: 'items',
+          subtotal_label: 'Subtotal:',
+          shipping_label: 'Shipping:',
+          free: 'Free',
+          total_label: 'Total:',
+          custom_amount_title: 'Custom Amount',
+          custom_amount_desc: 'Enter your payment amount',
+          amount_label: 'Enter payment amount (HKD)',
+          amount_placeholder: 'Enter amount',
+          apply_btn_text: 'Apply',
+          checkout_btn_text: 'Checkout',
+          reset_cart_text: 'Reset Items',
+          payment_method_title: 'Select Payment Product',
+          payment_method_desc: 'Choose your preferred payment product',
+          linkpay_desc: 'Redirect to payment page',
+          dropin_desc: 'Embedded payment, no redirect',
+          direct_desc: 'Direct API Payment',
+          order_summary_title: 'Order Summary',
+          subtotal: 'Subtotal',
+          shipping: 'Shipping',
+          final_total_label: 'Total Amount:',
+          pay_now_btn_text: 'Pay Now',
+          back_btn_text: 'Back to Cart',
+          secure_payment: 'Secure Payment',
+          ssl_protection: 'SSL Encrypted',
+          payment_amount: 'Payment Amount',
+          evonet_hosted: 'Evonet Hosted Payment Component',
+          custom_interface: 'Custom Payment Interface',
+          cardholder_name: 'Cardholder Name',
+          card_number: 'Card Number',
+          expiry_date: 'Expiry Date (MM/YY)',
+          cvv: 'CVV',
+          confirm_payment: 'Confirm Payment',
+          ssl_protection_text: 'Your payment information is SSL encrypted',
+          success_title: 'Payment Successful!',
+          success_message: 'Thank you for your purchase. Your order has been processed successfully.',
+          order_details_title: 'Order Details',
+          order_id_label: 'Order ID',
+          order_amount_label: 'Amount',
+          order_method_label: 'Payment Method',
+          order_time_label: 'Payment Time',
+          copy_order_btn_text: 'Copy Order Info',
+          new_shopping_btn_text: 'Continue Shopping',
+          secure_payment_multi: 'Secure Payment · Multiple Methods',
+          footer_text: 'Next-Gen Intelligent Payment Platform',
+          footer_security: 'Your payment information is SSL encrypted',
+          subscription_title: 'Subscription Management',
+          subscription_desc: 'Manage your subscription plans and payment methods',
+          subscription_first: 'First Subscription',
+          subscription_subsequent: 'Subsequent Subscription',
+          subscription_pay_now: 'Subscribe Now',
+          subscription_check_token: 'Check Subscription Status',
+          subscription_user_reference: 'User Reference ID',
+          subscription_user_reference_placeholder: 'Enter user reference ID',
+          subscription_has_token: 'Subscription payment method exists',
+          subscription_no_token: 'No subscription payment method found',
+          subscription_pay_with_token: 'Pay with saved payment method',
+          subscription_create_token: 'Create new subscription payment method',
+          subscription_payment_success: 'Subscription payment successful',
+          subscription_payment_failed: 'Subscription payment failed',
+          subscription_token_saved: 'Payment method saved for future subscriptions',
+          subscription_loading: 'Loading...',
+          subscription_error: 'Subscription operation failed',
+          subscription_confirm_payment: 'Confirm Subscription Payment'
+        }
+      };
+      
+      if (savedLang === 'en') {
+        document.documentElement.lang = 'en';
+        document.documentElement.classList.add('lang-en');
+      }
+      
+      window.__initialTranslations = translations[savedLang];
+      window.__initialLang = savedLang;
+    })();
+  </script>
+  <style>
+    :root {
+      --primary: #00f5d4;
+      --secondary: #7b2cbf;
+      --accent: #f72585;
+      --dark-bg: #0a0a0f;
+      --card-bg: rgba(20, 20, 30, 0.8);
+      --glow-primary: 0 0 20px rgba(0, 245, 212, 0.5);
+      --glow-secondary: 0 0 20px rgba(123, 44, 191, 0.5);
+    }
+    
+    * { 
+      font-family: 'Rajdhani', sans-serif;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: var(--dark-bg);
+      background-image: 
+        radial-gradient(ellipse at top, rgba(123, 44, 191, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom, rgba(0, 245, 212, 0.1) 0%, transparent 50%);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        linear-gradient(90deg, rgba(0, 245, 212, 0.03) 1px, transparent 1px),
+        linear-gradient(rgba(0, 245, 212, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .tech-title {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(0, 245, 212, 0.3);
+    }
+    
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 245, 212, 0.2);
+      border-radius: 20px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .glass-card:hover {
+      border-color: rgba(0, 245, 212, 0.4);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 0 30px rgba(0, 245, 212, 0.1);
+    }
+    
+    .step-indicator {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      position: relative;
+      transition: all 0.5s ease;
+    }
+    
+    .step-active {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #0a0a0f;
+      box-shadow: var(--glow-primary);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    .step-completed {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+      color: white;
+      box-shadow: var(--glow-secondary);
+    }
+    
+    .step-pending {
+      background: rgba(30, 30, 40, 0.8);
+      color: rgba(255, 255, 255, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 245, 212, 0.5); }
+      50% { box-shadow: 0 0 40px rgba(0, 245, 212, 0.8); }
+    }
+    
+    .progress-line {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .progress-line.active {
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      box-shadow: 0 0 10px var(--primary);
+    }
+    
+    .progress-line.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    .product-card {
+      background: rgba(30, 30, 40, 0.6);
+      border: 1px solid rgba(0, 245, 212, 0.1);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .product-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 245, 212, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .product-card:hover::before {
+      left: 100%;
+    }
+    
+    .product-card:hover {
+      border-color: rgba(0, 245, 212, 0.3);
+      transform: translateX(5px);
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.1);
+    }
+    
+    .quantity-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(0, 245, 212, 0.1);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .quantity-btn:hover {
+      background: var(--primary);
+      color: var(--dark-bg);
+      box-shadow: var(--glow-primary);
+      transform: scale(1.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #0a0a0f;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 600;
+      letter-spacing: 1px;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 32px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 245, 212, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: rgba(30, 30, 40, 0.8);
+      color: var(--primary);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 600;
+      letter-spacing: 1px;
+      border-radius: 12px;
+      padding: 16px 32px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(0, 245, 212, 0.1);
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
+    }
+    
+    .payment-method-card {
+      background: rgba(30, 30, 40, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .payment-method-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0, 245, 212, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .payment-method-card:hover {
+      border-color: rgba(0, 245, 212, 0.5);
+      transform: translateY(-5px);
+    }
+    
+    .payment-method-card:hover::before {
+      opacity: 1;
+    }
+    
+    .payment-method-card.selected {
+      border-color: var(--primary);
+      background: rgba(0, 245, 212, 0.05);
+      box-shadow: 
+        0 0 30px rgba(0, 245, 212, 0.2),
+        inset 0 0 30px rgba(0, 245, 212, 0.05);
+    }
+    
+    .payment-method-card.selected .check-icon {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .check-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.3s ease;
+      box-shadow: var(--glow-primary);
+    }
+    
+    .icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      position: relative;
+    }
+    
+    .icon-box.linkpay {
+      background: rgba(0, 245, 212, 0.1);
+      color: var(--primary);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+    }
+    
+    .icon-box.dropin {
+      background: rgba(247, 37, 133, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(247, 37, 133, 0.3);
+    }
+    
+    .icon-box.direct {
+      background: rgba(123, 44, 191, 0.1);
+      color: var(--secondary);
+      border: 1px solid rgba(123, 44, 191, 0.3);
+    }
+    
+    .dropin-container {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.1) 0%, rgba(123, 44, 191, 0.1) 100%);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(0, 245, 212, 0.5);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(0, 245, 212, 0.2),
+        inset 0 0 60px rgba(0, 245, 212, 0.05);
+    }
+    
+    .dropin-header {
+      background: linear-gradient(135deg, #00f5d4 0%, #7b2cbf 100%);
+      padding: 24px;
+      border-bottom: none;
+    }
+    
+    .dropin-inner {
+      background: #ffffff;
+      padding: 24px;
+      min-height: 400px;
+      border-radius: 0 0 20px 20px;
+    }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+    }
+    
+    .loading-ring {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 245, 212, 0.1);
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+      position: relative;
+    }
+    
+    .loading-ring::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
+      border-radius: 50%;
+      border: 3px solid rgba(247, 37, 133, 0.1);
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite reverse;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .success-container {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.1) 0%, rgba(123, 44, 191, 0.1) 100%);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .success-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      padding: 60px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .success-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      animation: rotate 20s linear infinite;
+    }
+    
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .success-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      animation: success-pulse 0.6s ease-out;
+      position: relative;
+      z-index: 1;
+    }
+    
+    @keyframes success-pulse {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .input-field {
+      background: rgba(30, 30, 40, 0.8);
+      border: 1px solid rgba(0, 245, 212, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      color: white;
+      font-size: 1rem;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
+    }
+    
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 400px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      border-radius: 12px;
+      padding: 16px 24px;
+      z-index: 1000;
+      transform: translateX(calc(100% + 40px));
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+    
+    #toast.show {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    #dropin-container {
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #dropin-container.show {
+      animation: slideUp 0.5s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .text-gradient {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 245, 212, 0.3), transparent);
+      margin: 20px 0;
+    }
+    
+    .particle {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.5;
+      animation: float 15s infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.5; }
+      90% { opacity: 0.5; }
+      100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+    }
+    
+    select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background: rgba(30, 30, 40, 0.8) !important;
+      border: 1px solid rgba(0, 245, 212, 0.3) !important;
+      color: white !important;
+      padding: 8px 36px 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f5d4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.2);
+    }
+    
+    select option {
+      background: #1a1a2e;
+      color: white;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+  
+  <div id="toast" class="hidden">
+    <p id="toast-message" class="text-white font-medium"></p>
+  </div>
+
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-opacity-80" style="background: rgba(10, 10, 15, 0.8); border-bottom: 1px solid rgba(0, 245, 212, 0.1);">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="/home.html" class="flex items-center space-x-4 cursor-pointer hover:opacity-80 transition-opacity">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.2) 0%, rgba(123, 44, 191, 0.2) 100%); border: 1px solid rgba(0, 245, 212, 0.3);">
+          <i class="fas fa-bolt text-xl" style="color: var(--primary);"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tech-title">NEXUS PAY</h1>
+          <p class="text-xs text-gray-400 tracking-widest">NEXT-GEN PAYMENT</p>
+        </div>
+      </a>
+      <div class="flex items-center space-x-4">
+        <select id="language-switch" class="px-4 py-2 rounded-lg text-sm">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-6 py-12 relative z-10">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex items-center justify-center mb-12">
+        <div class="flex items-center w-full max-w-3xl">
+          <div class="flex flex-col items-center flex-1">
+            <div id="step1-indicator" class="step-indicator step-active">01</div>
+            <span class="text-sm mt-3 font-medium text-gray-300" id="step1-label"><script>document.write(window.__initialTranslations.step1_label)</script></span>
+          </div>
+          <div class="flex-1 progress-line mx-4" id="progress-line-1"></div>
+          <div class="flex flex-col items-center flex-1">
+            <div id="step2-indicator" class="step-indicator step-pending">02</div>
+            <span class="text-sm mt-3 font-medium text-gray-500" id="step2-label"><script>document.write(window.__initialTranslations.step2_label)</script></span>
+          </div>
+          <div class="flex-1 progress-line mx-4" id="progress-line-2"></div>
+          <div class="flex flex-col items-center flex-1">
+            <div id="step3-indicator" class="step-indicator step-pending">03</div>
+            <span class="text-sm mt-3 font-medium text-gray-500" id="step3-label"><script>document.write(window.__initialTranslations.step3_label)</script></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="step1-cart" class="fade-in">
+        <div class="glass-card p-8 mb-6">
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(0, 245, 212, 0.1); border: 1px solid rgba(0, 245, 212, 0.3);">
+                <i class="fas fa-shopping-bag text-xl" style="color: var(--primary);"></i>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-white" id="cart-title"><script>document.write(window.__initialTranslations.cart_title)</script></h2>
+                <p class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.cart_desc)</script></p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.items_label)</script></p>
+              <p id="cart-count" class="text-2xl font-bold text-gradient">0 <script>document.write(window.__initialTranslations.items_count)</script></p>
+            </div>
+          </div>
+          
+          <div id="cart-items" class="space-y-4"></div>
+          
+          <div class="divider"></div>
+          
+          <div class="space-y-3">
+            <div class="flex justify-between items-center text-lg">
+              <span class="text-gray-400" id="subtotal-label"><script>document.write(window.__initialTranslations.subtotal_label)</script></span>
+              <span id="subtotal-amount" class="font-bold text-white">HKD 0.00</span>
+            </div>
+            <div class="flex justify-between items-center text-lg">
+              <span class="text-gray-400" id="shipping-label"><script>document.write(window.__initialTranslations.shipping_label)</script></span>
+              <span id="shipping-value-cart" class="font-bold" style="color: var(--primary);"><script>document.write(window.__initialTranslations.free)</script></span>
+            </div>
+          </div>
+          
+          <div class="divider"></div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-xl text-white font-bold" id="total-label"><script>document.write(window.__initialTranslations.total_label)</script></span>
+            <span id="total-amount" class="text-3xl font-bold text-gradient">HKD 0.00</span>
+          </div>
+        </div>
+
+        <div class="glass-card p-8 mb-6">
+          <div class="flex items-center mb-6">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(247, 37, 133, 0.1); border: 1px solid rgba(247, 37, 133, 0.3);">
+              <i class="fas fa-edit text-xl" style="color: var(--accent);"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-white" id="custom-amount-title"><script>document.write(window.__initialTranslations.custom_amount_title)</script></h3>
+              <p class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.custom_amount_desc)</script></p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-300 mb-2" id="amount-label"><script>document.write(window.__initialTranslations.amount_label)</script></label>
+              <input type="number" id="custom-amount" class="input-field" placeholder="" min="0" step="0.01">
+            </div>
+            <button id="apply-custom-amount" class="btn-primary mt-6">
+              <span id="apply-btn-text"><script>document.write(window.__initialTranslations.apply_btn_text)</script></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4">
+          <button id="reset-cart-btn" class="btn-secondary py-4 px-6 text-lg flex items-center justify-center">
+            <i class="fas fa-redo mr-2"></i>
+            <span id="reset-cart-text"><script>document.write(window.__initialTranslations.reset_cart_text)</script></span>
+          </button>
+          <button id="checkout-btn" class="flex-1 btn-primary py-5 text-lg flex items-center justify-center">
+            <span id="checkout-btn-text"><script>document.write(window.__initialTranslations.checkout_btn_text)</script></span>
+            <i class="fas fa-arrow-right ml-3"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="step2-payment" class="hidden fade-in">
+        <div id="payment-selection">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：支付方式选择 -->
+            <div class="lg:col-span-2">
+              <div class="glass-card p-8 mb-6">
+                <div class="flex items-center mb-8">
+                  <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(0, 245, 212, 0.1); border: 1px solid rgba(0, 245, 212, 0.3);">
+                    <i class="fas fa-credit-card text-xl" style="color: var(--primary);"></i>
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-bold text-white" id="payment-method-title"><script>document.write(window.__initialTranslations.payment_method_title)</script></h2>
+                    <p class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.payment_method_desc)</script></p>
+                  </div>
+                </div>
+                
+                <!-- LinkPay - 跳转支付 -->
+                <div class="mb-4">
+                  <div class="payment-method-card" data-method="linkpay">
+                    <div class="relative z-10 flex items-center justify-between">
+                      <div class="flex items-center">
+                        <div class="icon-box linkpay mr-4">
+                          <img src="https://files.readme.io/45e3591-browser.png" alt="LinkPay" class="w-8 h-8 object-contain">
+                        </div>
+                        <div>
+                          <h3 class="text-xl font-bold text-white">LinkPay</h3>
+                          <p class="text-sm text-gray-400" id="linkpay-desc"><script>document.write(window.__initialTranslations.linkpay_desc)</script></p>
+                        </div>
+                      </div>
+                      <div class="check-icon">
+                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Dropin - 内嵌支付组件 -->
+                <div class="mb-4">
+                  <div class="payment-method-card" data-method="dropin">
+                    <div class="relative z-10 flex items-center justify-between">
+                      <div class="flex items-center">
+                        <div class="icon-box dropin mr-4">
+                          <img src="https://files.readme.io/3f89d1a-subscription.png" alt="Dropin" class="w-8 h-8 object-contain">
+                        </div>
+                        <div>
+                          <h3 class="text-xl font-bold text-white">Dropin</h3>
+                          <p class="text-sm text-gray-400" id="dropin-desc"><script>document.write(window.__initialTranslations.dropin_desc)</script></p>
+                        </div>
+                      </div>
+                      <div class="check-icon">
+                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Direct API - 直连API -->
+                <div>
+                  <div class="payment-method-card" data-method="direct">
+                    <div class="relative z-10 flex items-center justify-between">
+                      <div class="flex items-center">
+                        <div class="icon-box direct mr-4">
+                          <img src="https://files.readme.io/914be8b-api.png" alt="Direct API" class="w-8 h-8 object-contain">
+                        </div>
+                        <div>
+                          <h3 class="text-xl font-bold text-white">Direct API</h3>
+                          <p class="text-sm text-gray-400" id="direct-desc"><script>document.write(window.__initialTranslations.direct_desc)</script></p>
+                        </div>
+                      </div>
+                      <div class="check-icon">
+                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 订阅管理 -->
+                <div class="mt-8">
+                  <div class="glass-card p-6">
+                    <div class="flex items-center mb-6">
+                      <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3);">
+                        <i class="fas fa-sync-alt text-xl" style="color: var(--secondary);"></i>
+                      </div>
+                      <div>
+                        <h3 class="text-xl font-bold text-white"><script>document.write(window.__initialTranslations.subscription_title)</script></h3>
+                        <p class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.subscription_desc)</script></p>
+                      </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                      <!-- 用户参考ID输入 -->
+                      <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2"><script>document.write(window.__initialTranslations.subscription_user_reference)</script></label>
+                        <input type="text" id="subscription-user-reference" class="input-field" placeholder="" value="user_123456">
+                      </div>
+                      
+                      <!-- 检查订阅状态 -->
+                      <div>
+                        <button id="check-subscription-btn" class="btn-secondary w-full py-3 flex items-center justify-center">
+                          <i class="fas fa-check-circle mr-2"></i>
+                          <span><script>document.write(window.__initialTranslations.subscription_check_token)</script></span>
+                        </button>
+                      </div>
+                      
+                      <!-- 订阅状态显示 -->
+                      <div id="subscription-status" class="hidden p-4 rounded-lg" style="background: rgba(30, 30, 40, 0.6); border: 1px solid rgba(0, 245, 212, 0.1);">
+                        <div class="flex items-center">
+                          <div id="subscription-status-icon" class="w-10 h-10 rounded-full flex items-center justify-center mr-3"></div>
+                          <div>
+                            <p id="subscription-status-text" class="font-medium text-white"></p>
+                            <p id="subscription-status-desc" class="text-sm text-gray-400 mt-1"></p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- 订阅支付按钮 -->
+                      <div class="space-y-3">
+                        <button id="create-subscription-btn" class="btn-primary w-full py-3 flex items-center justify-center">
+                          <i class="fas fa-plus-circle mr-2"></i>
+                          <span><script>document.write(window.__initialTranslations.subscription_create_token)</script></span>
+                        </button>
+                        <button id="pay-with-subscription-btn" class="btn-primary w-full py-3 flex items-center justify-center" disabled>
+                          <i class="fas fa-credit-card mr-2"></i>
+                          <span><script>document.write(window.__initialTranslations.subscription_pay_with_token)</script></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dropin 容器 -->
+              <div id="dropin-container" class="hidden">
+                <div class="relative">
+                  <!-- Evonet 托管标识 -->
+                  <div class="absolute -top-3 left-6 z-10">
+                    <div class="px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.2) 0%, rgba(123, 44, 191, 0.2) 100%); border: 1px solid rgba(0, 245, 212, 0.4); color: var(--primary);">
+                      <i class="fas fa-shield-alt"></i>
+                      <span><script>document.write(window.__initialTranslations.evonet_hosted)</script></span>
+                    </div>
+                  </div>
+                  
+                  <div class="dropin-container" style="border: 2px solid rgba(0, 245, 212, 0.3); box-shadow: 0 0 30px rgba(0, 245, 212, 0.1);">
+                    <div class="dropin-header" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.05) 0%, rgba(123, 44, 191, 0.05) 100%);">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                          <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(0, 245, 212, 0.2); border: 1px solid rgba(0, 245, 212, 0.3);">
+                            <i class="fas fa-wallet text-xl" style="color: var(--primary);"></i>
+                          </div>
+                          <div>
+                            <h3 class="text-xl font-bold text-white">安全支付</h3>
+                            <p class="text-sm text-gray-400">支付组件由 Evonet 提供</p>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <p class="text-sm text-gray-400">支付金额</p>
+                          <p id="dropin-amount" class="text-2xl font-bold text-gradient">HKD 0.00</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="dropin-inner">
+                      <div id="dropInApp"></div>
+                    </div>
+                    <!-- Powered by Evonet -->
+                    <div class="px-6 py-3 text-center text-xs text-gray-500" style="border-top: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0, 0, 0, 0.2);">
+                      <span>Powered by</span>
+                      <span class="font-bold ml-1" style="color: var(--primary);">Evonet</span>
+                      <span class="mx-2">|</span>
+                      <span>安全支付 · 多种方式</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Direct API 容器 -->
+              <div id="direct-api-container" class="hidden">
+                <div class="relative">
+                  <!-- 自定义集成标识 -->
+                  <div class="absolute -top-3 left-6 z-10">
+                    <div class="px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2" style="background: linear-gradient(135deg, rgba(123, 44, 191, 0.2) 0%, rgba(247, 37, 133, 0.2) 100%); border: 1px solid rgba(123, 44, 191, 0.4); color: var(--secondary);">
+                      <i class="fas fa-code"></i>
+                      <span><script>document.write(window.__initialTranslations.custom_interface)</script></span>
+                    </div>
+                  </div>
+                  
+                  <div class="glass-card p-8" style="border: 2px solid rgba(123, 44, 191, 0.3); box-shadow: 0 0 30px rgba(123, 44, 191, 0.1);">
+                    <div class="flex items-center justify-between mb-8">
+                      <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                          <div class="px-3 py-1.5 rounded-lg" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <img src="https://hk1rbd-prod-bucket.s3.ap-northeast-1.amazonaws.com/apilogo/VISA.svg" alt="Visa" class="h-6">
+                          </div>
+                          <div class="px-3 py-1.5 rounded-lg" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <img src="https://hk1rbd-prod-bucket.s3.ap-northeast-1.amazonaws.com/apilogo/Mastercard.svg" alt="Mastercard" class="h-6">
+                          </div>
+                          <div class="px-3 py-1.5 rounded-lg" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <img src="https://hk1rbd-prod-bucket.s3.ap-northeast-1.amazonaws.com/apilogo/JCB.svg" alt="JCB" class="h-6">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <p id="direct-payment-amount-label" class="text-sm text-gray-400"><script>document.write(window.__initialTranslations.payment_amount)</script></p>
+                        <p id="direct-amount" class="text-2xl font-bold text-gradient">HKD 0.00</p>
+                      </div>
+                    </div>
+
+                    <form id="direct-payment-form" class="space-y-6">
+                      <div>
+                        <label id="label-holder-name" class="block text-sm font-medium text-gray-300 mb-2"><script>document.write(window.__initialTranslations.cardholder_name)</script></label>
+                        <input type="text" id="holder-name" name="holderName" required
+                          class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
+                          placeholder="请输入持卡人姓名" value="Test User">
+                      </div>
+
+                      <div>
+                        <label id="label-card-number" class="block text-sm font-medium text-gray-300 mb-2"><script>document.write(window.__initialTranslations.card_number)</script></label>
+                        <input type="text" id="card-number" name="cardNumber" required maxlength="19"
+                          class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
+                          placeholder="请输入卡号" value="4895 3301 1111 1119">
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-4">
+                        <div>
+                          <label id="label-expiry-date" class="block text-sm font-medium text-gray-300 mb-2"><script>document.write(window.__initialTranslations.expiry_date)</script></label>
+                          <input type="text" id="expiry-date" name="expiryDate" required maxlength="5"
+                            class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
+                            placeholder="MM/YY" value="12/31">
+                        </div>
+                        <div>
+                          <label id="label-cvv" class="block text-sm font-medium text-gray-300 mb-2"><script>document.write(window.__initialTranslations.cvv)</script></label>
+                          <input type="text" id="cvv" name="cvv" required maxlength="4"
+                            class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
+                            placeholder="CVV" value="390">
+                        </div>
+                      </div>
+
+                      <div class="pt-4">
+                        <button type="submit" id="direct-pay-btn" class="w-full btn-primary py-4 text-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);">
+                          <i class="fas fa-lock mr-3"></i>
+                          <span id="btn-confirm-payment"><script>document.write(window.__initialTranslations.confirm_payment)</script></span>
+                        </button>
+                      </div>
+                    </form>
+
+                    <div class="mt-6 flex items-center justify-center text-sm text-gray-400">
+                      <i class="fas fa-shield-alt mr-2" style="color: var(--secondary);"></i>
+                      <span id="ssl-protection-text"><script>document.write(window.__initialTranslations.ssl_protection_text)</script></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右侧：订单摘要 -->
+            <div class="lg:col-span-1">
+              <div class="glass-card p-6 sticky top-24">
+                <div class="flex items-center mb-6">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center mr-3" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3);">
+                    <i class="fas fa-receipt text-lg" style="color: var(--secondary);"></i>
+                  </div>
+                  <h3 class="text-xl font-bold text-white" id="order-summary-title">订单摘要</h3>
+                </div>
+                
+                <div id="order-summary-items" class="space-y-3 mb-6">
+                </div>
+
+                <div class="border-t border-gray-700 pt-4 mb-4">
+                  <div class="flex justify-between text-gray-400 mb-2">
+                    <span>小计</span>
+                    <span id="subtotal-amount">HKD 0.00</span>
+                  </div>
+                  <div class="flex justify-between text-gray-400 mb-2">
+                    <span>运费</span>
+                    <span id="shipping-value-payment">免费</span>
+                  </div>
+                </div>
+
+                <div class="border-t border-gray-700 pt-4">
+                  <div class="flex justify-between items-center mb-6">
+                    <span class="text-xl text-white font-bold" id="final-total-label">应付总额：</span>
+                    <span id="final-total-amount" class="text-3xl font-bold text-gradient">HKD 0.00</span>
+                  </div>
+
+                  <button id="pay-now-btn" class="w-full btn-primary py-4 text-lg flex items-center justify-center mb-3" disabled>
+                    <i class="fas fa-lock mr-3"></i>
+                    <span id="pay-now-btn-text">立即支付</span>
+                  </button>
+
+                  <button id="back-to-cart" class="w-full btn-secondary py-3 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span id="back-btn-text">返回购物车</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="step3-success" class="hidden fade-in">
+        <div class="success-container">
+          <div class="success-header">
+            <div class="success-icon">
+              <i class="fas fa-check text-4xl" style="color: var(--dark-bg);"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2 relative z-10" id="success-title">支付成功！</h2>
+            <p class="text-lg text-white opacity-90 relative z-10" id="success-message">感谢您的购买，您的订单已成功处理。</p>
+          </div>
+
+          <div class="p-8">
+            <div class="glass-card p-6 mb-6">
+              <div class="flex items-center mb-6">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3" style="background: rgba(0, 245, 212, 0.1); border: 1px solid rgba(0, 245, 212, 0.3);">
+                  <i class="fas fa-file-invoice" style="color: var(--primary);"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white" id="order-details-title">订单详情</h3>
+              </div>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center py-3 border-b border-gray-700">
+                  <span class="text-gray-400" id="order-id-label">订单号</span>
+                  <span id="order-id" class="font-bold text-white text-lg font-mono"></span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-gray-700">
+                  <span class="text-gray-400" id="order-amount-label">支付金额</span>
+                  <span id="order-amount" class="text-2xl font-bold text-gradient"></span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-gray-700">
+                  <span class="text-gray-400" id="order-method-label">支付方式</span>
+                  <span id="order-method" class="font-bold text-white"></span>
+                </div>
+                <div class="flex justify-between items-center py-3">
+                  <span class="text-gray-400" id="order-time-label">支付时间</span>
+                  <span id="order-time" class="font-bold text-white"></span>
+                </div>
+              </div>
+              
+              <!-- 订阅信息 -->
+              <div id="subscription-info" class="hidden mt-6 p-4 rounded-lg" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3);">
+                <div class="flex items-center mb-3">
+                  <i class="fas fa-sync-alt mr-2" style="color: var(--secondary);"></i>
+                  <span class="font-bold text-white"><script>document.write(window.__initialTranslations.subscription_title)</script></span>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-400"><script>document.write(window.__initialTranslations.subscription_user_reference)</script>:</span>
+                    <span id="subscription-user-ref" class="font-bold text-white font-mono"></span>
+                  </div>
+                  <p class="text-gray-300 mt-3"><script>document.write(window.__initialTranslations.subscription_token_saved)</script></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex space-x-4">
+              <button id="copy-order-details" class="flex-1 btn-secondary py-4 flex items-center justify-center">
+                <i class="fas fa-copy mr-2"></i>
+                <span id="copy-order-btn-text">复制订单信息</span>
+              </button>
+              <button id="new-shopping" class="flex-1 btn-primary py-4 flex items-center justify-center">
+                <i class="fas fa-shopping-cart mr-2"></i>
+                <span id="new-shopping-btn-text">继续购物</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="relative z-10 py-8 mt-12" style="background: rgba(10, 10, 15, 0.8); border-top: 1px solid rgba(0, 245, 212, 0.1);">
+    <div class="container mx-auto px-6 text-center">
+      <p class="text-gray-400 text-sm">© 2025 NEXUS PAY. 下一代智能支付平台</p>
+      <div class="mt-2 text-xs text-gray-500 flex items-center justify-center">
+        <i class="fas fa-shield-alt mr-2" style="color: var(--primary);"></i>
+        您的支付信息受到SSL加密保护
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/cil-dropin-components@latest/dist/index.min.js"></script>
+  <script src="/checkout/script.js"></script>
+  
+  <script>
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 15 + 's';
+        particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+        container.appendChild(particle);
+      }
+    }
+    createParticles();
+  </script>
+</body>
+</html>

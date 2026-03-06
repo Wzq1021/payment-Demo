@@ -2,18 +2,6 @@ const express = require('express');
 const crypto = require('crypto');
 const axios = require('axios');
 const path = require('path');
-const fs = require('fs');
-
-// Vercel Edge Config 配置
-let edgeConfigClient = null;
-try {
-  const { createClient } = require('@vercel/edge-config');
-  edgeConfigClient = createClient();
-  console.log('Edge Config client initialized');
-} catch (error) {
-  console.log('Edge Config not available, using file system storage');
-  // 本地开发环境使用文件系统存储
-}
 
 const app = express();
 app.use(express.json());
@@ -34,57 +22,7 @@ const WEBHOOK_LINKPAY_URL = 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.p
 // Dropin Configuration
 const signKeyDropin = 'd5e2c210d2114b1993ee68244ed88fce';
 const keyID = '630805e2d532478aba9cedb9cea14397';
-
-// Token Storage - 支持 Vercel KV 和本地文件系统
-const TOKEN_FILE = path.join(__dirname, 'tokens.json');
-
-// 初始化 tokenStore
-let tokenStore = new Map();
-
-// 从存储加载 tokens
-async function loadTokens() {
-  try {
-    if (edgeConfigClient) {
-      // 使用 Edge Config
-      const tokens = await edgeConfigClient.get('tokens');
-      if (tokens) {
-        tokenStore = new Map(Object.entries(tokens));
-        console.log('Loaded tokens from Edge Config:', Array.from(tokenStore.entries()));
-      }
-    } else {
-      // 使用本地文件系统
-      if (fs.existsSync(TOKEN_FILE)) {
-        const data = fs.readFileSync(TOKEN_FILE, 'utf8');
-        const tokens = JSON.parse(data);
-        tokenStore = new Map(Object.entries(tokens));
-        console.log('Loaded tokens from file:', Array.from(tokenStore.entries()));
-      }
-    }
-  } catch (error) {
-    console.error('Error loading tokens:', error);
-  }
-}
-
-// 保存 tokens 到存储
-async function saveTokens() {
-  try {
-    const tokens = Object.fromEntries(tokenStore);
-    if (edgeConfigClient) {
-      // 使用 Edge Config
-      await edgeConfigClient.set('tokens', tokens);
-      console.log('Saved tokens to Edge Config');
-    } else {
-      // 使用本地文件系统
-      fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2));
-      console.log('Saved tokens to file');
-    }
-  } catch (error) {
-    console.error('Error saving tokens:', error);
-  }
-}
-
-// 启动时加载 tokens
-loadTokens();
+const tokenStore = new Map();
 
 // Shared State Management for LinkPay
 const orderState = {
@@ -127,7 +65,7 @@ function getDateTimeString() {
 // LinkPay: Create Payment Link
 app.post('/linkpay/create-payment', async (req, res) => {
   try {
-    const { amount, userReference, isSubscription } = req.body;
+    const { amount } = req.body;
     const paymentAmount = amount || 100.00;
 
     const method = 'POST';
@@ -159,18 +97,8 @@ app.post('/linkpay/create-payment', async (req, res) => {
       },
       validTime: 5,
       returnUrl: `${req.protocol}://${req.get('host')}/checkout/index.html?payment=success&orderId=${encodeURIComponent('DEMO_' + Date.now())}&amount=${encodeURIComponent(String(paymentAmount))}&method=LinkPay`,
-      webhook: `${req.protocol}://${req.get('host')}/linkpay/webhook`
+      webhook: WEBHOOK_LINKPAY_URL
     };
-
-    // 添加订阅相关参数
-    if (isSubscription) {
-      body.userInfo = {
-        reference: userReference || 'user_' + Date.now()
-      };
-      body.paymentMethod = {
-        recurringProcessingModel: 'Subscription'
-      };
-    }
 
     const bodyString = JSON.stringify(body);
     const stringToSign = [method, urlPath, dateTime, keyLinkPay, msgID, bodyString].join('\n');
@@ -308,12 +236,12 @@ app.get('/linkpay/check-payment/:orderId', async (req, res) => {
 });
 
 // LinkPay: Webhook Handling
-app.post('/linkpay/webhook', async (req, res) => {
+app.post('/linkpay/webhook', (req, res) => {
   console.log('=== LinkPay 收到 Webhook ===');
   console.log('Headers:', req.headers);
   console.log('Body:', JSON.stringify(req.body, null, 2));
 
-  const { eventCode, merchantOrderInfo, transactionInfo, refund, result, paymentMethod, userInfo } = req.body || {};
+  const { eventCode, merchantOrderInfo, transactionInfo, refund, result } = req.body || {};
   const { merchantOrderID, status } = merchantOrderInfo || {};
   const transInfo = transactionInfo || refund || {};
   const { transAmount, merchantTransInfo } = transInfo;
@@ -362,44 +290,29 @@ app.post('/linkpay/webhook', async (req, res) => {
 
   const order = orderState.get(merchantOrderID);
   if (!order) {
-    console.warn('[Webhook Warning] Order not found', { merchantOrderID });
-    // 不返回失败，继续处理
+    console.error('[Webhook Invalid] Order not found', { merchantOrderID });
+    return res.status(404).send('FAIL');
   }
 
   try {
-    // 保存 token（如果是订阅支付，只要有token就保存）
-    if (paymentMethod?.token?.value && userInfo?.reference) {
-      const tokenData = {
-        token: paymentMethod.token.value,
-        card: paymentMethod.card || {},
-        paymentMethod: paymentMethod.card?.paymentBrand || paymentMethod.type || paymentMethod.paymentMethodVariant || 'unknown',
-        createdAt: new Date().toISOString()
-      };
-      tokenStore.set(userInfo.reference, tokenData);
-      await saveTokens(); // 保存到存储
-      console.log('[Webhook Processed] Token saved', { userReference: userInfo.reference, token: paymentMethod.token.value });
-    }
-    
-    // 处理支付成功事件
-    if (eventCode === 'LinkPay' && status === 'Paid') {
-      if (order) {
-        if (Number(order.totalAmount) !== Number(amount)) {
-          console.error('[Webhook Invalid] Amount mismatch', { expected: order.totalAmount, received: amount });
-          // 不返回失败，继续处理
-        }
-        orderState.updateStatus(merchantOrderID, 'success');
+    if (eventCode === 'LinkPay' && status === 'Paid' && transactionInfo?.status === 'Captured') {
+      if (Number(order.totalAmount) !== Number(amount)) {
+        console.error('[Webhook Invalid] Amount mismatch', { expected: order.totalAmount, received: amount });
+        return res.status(400).send('FAIL');
       }
+      orderState.updateStatus(merchantOrderID, 'success');
       console.log('[Webhook Processed] Payment successful', { merchantOrderID, status: 'Paid', merchantTransID });
     } else if (eventCode === 'LinkPay Refund' && refund?.status === 'Success') {
-      if (order) {
-        if (Number(amount) > order.totalAmount - order.refundedAmount) {
-          console.error('[Webhook Invalid] Refund amount exceeds remaining balance', { expected: order.totalAmount - order.refundedAmount, received: amount });
-          // 不返回失败，继续处理
-        }
-        orderState.updateRefundedAmount(merchantOrderID, Number(amount));
-        orderState.updateStatus(merchantOrderID, status.toLowerCase());
+      if (Number(amount) > order.totalAmount - order.refundedAmount) {
+        console.error('[Webhook Invalid] Refund amount exceeds remaining balance', { expected: order.totalAmount - order.refundedAmount, received: amount });
+        return res.status(400).send('FAIL');
       }
+      orderState.updateRefundedAmount(merchantOrderID, Number(amount));
+      orderState.updateStatus(merchantOrderID, status.toLowerCase());
       console.log('[Webhook Processed] Refund successful', { merchantOrderID, status, merchantTransID, refundedAmount: amount });
+    } else {
+      console.error('[Webhook Invalid] Unsupported event or status', { eventCode, status, transactionStatus: transactionInfo?.status, refundStatus: refund?.status });
+      return res.status(400).send('FAIL');
     }
 
     notificationState.add(notifyId);
@@ -535,7 +448,7 @@ app.get('/linkpay/refund-result/:transId', async (req, res) => {
 // Dropin: Create Payment Link
 app.post('/dropin/create-payment', async (req, res) => {
   try {
-    const { amount, userReference, isSubscription } = req.body;
+    const { amount, userReference } = req.body;
     if (!amount || !userReference) {
       return res.status(400).json({ error: '缺少 amount 或 userReference 参数' });
     }
@@ -562,15 +475,8 @@ app.post('/dropin/create-payment', async (req, res) => {
         reference: userReference
       },
       returnUrl: `${req.protocol}://${req.get('host')}/checkout/index.html?payment=success&orderId=${encodeURIComponent(orderId)}&amount=${encodeURIComponent(String(amount))}&method=Dropin`,
-      webhook: `${req.protocol}://${req.get('host')}/dropin/webhook`
+      webhook: 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io'
     };
-
-    // 添加订阅相关参数
-    if (isSubscription) {
-      body.paymentMethod = {
-        recurringProcessingModel: 'Subscription'
-      };
-    }
 
     const bodyString = JSON.stringify(body, null, 0);
 
@@ -684,7 +590,7 @@ app.get('/dropin/query-payment/:merchantOrderID', async (req, res) => {
 });
 
 // Dropin: Save Token
-app.post('/dropin/save-token', async (req, res) => {
+app.post('/dropin/save-token', (req, res) => {
   const { userReference, token, card, paymentMethod } = req.body;
   if (!userReference || !token || !paymentMethod) {
     return res.status(400).json({ error: '缺少 userReference, token 或 paymentMethod 参数' });
@@ -693,8 +599,7 @@ app.post('/dropin/save-token', async (req, res) => {
   const tokenData = {
     token,
     card: card || {},
-    paymentMethod: paymentMethod || 'unknown',
-    createdAt: new Date().toISOString()
+    paymentMethod: paymentMethod || 'unknown'
   };
   if (tokenStore.has(userReference)) {
     console.log(`Token 已经存在 for user: ${userReference}, 更新为: ${JSON.stringify(tokenData)}`);
@@ -702,7 +607,6 @@ app.post('/dropin/save-token', async (req, res) => {
     console.log(`保存新 token: ${JSON.stringify(tokenData)} for user: ${userReference}`);
   }
   tokenStore.set(userReference, tokenData);
-  await saveTokens(); // 保存到存储
   console.log('Current tokenStore:', Array.from(tokenStore.entries()));
   res.json({ message: 'Token 保存成功' });
 });
@@ -844,7 +748,7 @@ app.post('/dropin/create-subscription', async (req, res) => {
 });
 
 // Dropin: Webhook Handling
-app.post('/dropin/webhook', async (req, res) => {
+app.post('/dropin/webhook', (req, res) => {
   console.log('Dropin Webhook received at:', new Date().toISOString());
   console.log('Webhook headers:', JSON.stringify(req.headers, null, 2));
   console.log('Webhook body:', JSON.stringify(req.body, null, 2));
@@ -859,8 +763,7 @@ app.post('/dropin/webhook', async (req, res) => {
     const tokenData = {
       token: paymentMethod.token.value,
       card: paymentMethod.card || {},
-      paymentMethod: paymentMethod.card?.paymentBrand || paymentMethod.type || paymentMethod.paymentMethodVariant || 'unknown',
-      createdAt: new Date().toISOString()
+      paymentMethod: paymentMethod.card?.paymentBrand || paymentMethod.type || paymentMethod.paymentMethodVariant || 'unknown'
     };
     if (tokenStore.has(userInfo.reference)) {
       console.log(`Token 已经存在 for user: ${userInfo.reference}, 更新为: ${JSON.stringify(tokenData)}`);
@@ -868,7 +771,6 @@ app.post('/dropin/webhook', async (req, res) => {
       console.log(`保存新 token: ${JSON.stringify(tokenData)} for user: ${userInfo.reference}`);
     }
     tokenStore.set(userInfo.reference, tokenData);
-    await saveTokens(); // 保存到存储
     console.log('Current tokenStore:', Array.from(tokenStore.entries()));
   } else {
     console.warn('Webhook data invalid:', {
@@ -948,114 +850,6 @@ app.post('/webhook', (req, res) => {
   }
   
   res.status(200).send('SUCCESS');
-});
-
-// Subscription: MIT Transaction (Using saved token)
-app.post('/subscription/mit-payment', async (req, res) => {
-  try {
-    const { amount, userReference, captureAfterHours = '0' } = req.body;
-    
-    if (!amount || !userReference) {
-      return res.status(400).json({ error: '缺少 amount 或 userReference 参数' });
-    }
-    
-    // 获取保存的 token
-    const tokenData = tokenStore.get(userReference);
-    if (!tokenData || !tokenData.token) {
-      return res.status(400).json({ error: '未找到与 userReference 关联的 token' });
-    }
-    
-    const dateTime = new Date().toISOString();
-    const traceId = crypto.randomUUID().replace(/-/g, '');
-    const merchantTransID = 'SUB_' + Date.now();
-    
-    console.log('=== Subscription MIT X-Trace-Id ===\n' + traceId);
-    
-    const body = {
-      merchantTransInfo: {
-        merchantTransID: merchantTransID,
-        merchantTransTime: dateTime
-      },
-      transAmount: {
-        currency: 'HKD',
-        value: String(amount)
-      },
-      paymentMethod: {
-        token: {
-          value: tokenData.token
-        },
-        recurringProcessingModel: 'Subscription'
-      },
-      captureAfterHours: captureAfterHours,
-      returnURL: `${req.protocol}://${req.get('host')}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(String(amount))}&method=Subscription`,
-      webhook: `${req.protocol}://${req.get('host')}/webhook`
-    };
-    
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': signKeyDropin,
-      'DateTime': dateTime,
-      'KeyID': keyID,
-      'SignType': 'Key-based',
-      'Idempotency-Key': merchantTransID,
-      'X-Trace-Id': traceId
-    };
-    
-    console.log('MIT Payment Request:', JSON.stringify(body, null, 2));
-    console.log('Request Headers:', JSON.stringify(headers, null, 2));
-    
-    const response = await axios.post(
-      'https://sandbox.evonetonline.com/payment',
-      body,
-      { headers }
-    );
-    
-    console.log('=== MIT Payment Response ===');
-    console.log('Response:', JSON.stringify(response.data, null, 2));
-    
-    res.json({
-      message: '订阅支付成功',
-      orderId: merchantTransID,
-      result: response.data
-    });
-  } catch (err) {
-    console.error('MIT Payment Error:', {
-      message: err.message,
-      response: err.response?.data,
-      status: err.response?.status,
-      headers: err.response?.headers
-    });
-    res.status(500).json({
-      error: '订阅支付失败',
-      details: err.response?.data || err.message
-    });
-  }
-});
-
-// Get saved tokens for a user - 从查询接口获取 token
-app.get('/subscription/tokens/:userReference', async (req, res) => {
-  const { userReference } = req.params;
-  
-  // 首先检查内存中是否有 token
-  let tokenData = tokenStore.get(userReference);
-  
-  if (tokenData) {
-    console.log('Found token in memory for user:', userReference);
-    return res.json({
-      success: true,
-      userReference,
-      tokenData
-    });
-  }
-  
-  // 如果内存中没有，尝试从最近的订单中查询
-  // 注意：在实际生产环境中，应该从数据库中查询
-  console.log('No token found in memory for user:', userReference);
-  res.json({
-    success: false,
-    message: '未找到保存的 token，请先完成首次订阅支付'
-  });
 });
 
 const PORT = process.env.PORT || 3000;
