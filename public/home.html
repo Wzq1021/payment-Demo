@@ -261,29 +261,57 @@
       </div>
 
       <div class="mb-16">
-        <a href="/checkout/index.html" class="block hero-card p-12 md:p-16">
-          <div class="relative z-10">
-            <div class="w-24 h-24 mx-auto mb-8 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.2) 0%, rgba(123, 44, 191, 0.2) 100%); border: 1px solid rgba(0, 245, 212, 0.3);">
-              <i class="fas fa-shopping-cart text-4xl" style="color: var(--primary);"></i>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- 普通支付入口 -->
+          <a href="/checkout/index.html?mode=normal" class="block hero-card p-12">
+            <div class="relative z-10">
+              <div class="w-24 h-24 mx-auto mb-8 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.2) 0%, rgba(123, 44, 191, 0.2) 100%); border: 1px solid rgba(0, 245, 212, 0.3);">
+                <i class="fas fa-shopping-cart text-4xl" style="color: var(--primary);"></i>
+              </div>
+              <h3 class="text-3xl md:text-4xl font-bold text-white mb-4" id="normal-title">普通支付</h3>
+              <p class="text-lg text-gray-400 mb-8" id="normal-desc">体验完整的购物支付流程</p>
+              <div class="flex flex-wrap justify-center gap-4">
+                <div class="tag">
+                  <i class="fas fa-check-circle mr-2"></i>
+                  <span id="feature1">商品选择</span>
+                </div>
+                <div class="tag">
+                  <i class="fas fa-credit-card mr-2"></i>
+                  <span id="feature2">多种支付</span>
+                </div>
+                <div class="tag">
+                  <i class="fas fa-shield-alt mr-2"></i>
+                  <span id="feature3">安全可靠</span>
+                </div>
+              </div>
             </div>
-            <h3 class="text-3xl md:text-4xl font-bold text-white mb-4" id="checkout-title">开始探索</h3>
-            <p class="text-lg text-gray-400 mb-8" id="checkout-desc">体验完整的购物支付流程</p>
-            <div class="flex flex-wrap justify-center gap-4">
-              <div class="tag">
-                <i class="fas fa-check-circle mr-2"></i>
-                <span id="feature1">商品选择</span>
+          </a>
+          
+          <!-- 订阅支付入口 -->
+          <a href="/checkout/index.html?mode=subscription" class="block hero-card p-12">
+            <div class="relative z-10">
+              <div class="w-24 h-24 mx-auto mb-8 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(123, 44, 191, 0.2) 0%, rgba(0, 245, 212, 0.2) 100%); border: 1px solid rgba(123, 44, 191, 0.3);">
+                <i class="fas fa-sync-alt text-4xl" style="color: var(--secondary);"></i>
               </div>
-              <div class="tag">
-                <i class="fas fa-credit-card mr-2"></i>
-                <span id="feature2">多种支付</span>
-              </div>
-              <div class="tag">
-                <i class="fas fa-shield-alt mr-2"></i>
-                <span id="feature3">安全可靠</span>
+              <h3 class="text-3xl md:text-4xl font-bold text-white mb-4" id="subscription-title">订阅支付</h3>
+              <p class="text-lg text-gray-400 mb-8" id="subscription-desc">创建订阅并使用保存的支付方式</p>
+              <div class="flex flex-wrap justify-center gap-4">
+                <div class="tag" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3); color: var(--secondary);">
+                  <i class="fas fa-save mr-2"></i>
+                  <span id="sub-feature1">保存卡片</span>
+                </div>
+                <div class="tag" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3); color: var(--secondary);">
+                  <i class="fas fa-redo mr-2"></i>
+                  <span id="sub-feature2">自动扣款</span>
+                </div>
+                <div class="tag" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3); color: var(--secondary);">
+                  <i class="fas fa-clock mr-2"></i>
+                  <span id="sub-feature3">便捷管理</span>
+                </div>
               </div>
             </div>
-          </div>
-        </a>
+          </a>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -354,11 +382,16 @@
         main_title: '智能支付',
         main_subtitle: '融合前沿科技与极致安全，为您打造无缝支付体验',
         sub_title: '重新定义交易体验',
-        checkout_title: '开始探索',
-        checkout_desc: '体验完整的购物支付流程',
+        normal_title: '普通支付',
+        normal_desc: '体验完整的购物支付流程',
+        subscription_title: '订阅支付',
+        subscription_desc: '创建订阅并使用保存的支付方式',
         feature1: '商品选择',
         feature2: '多种支付',
         feature3: '安全可靠',
+        sub_feature1: '保存卡片',
+        sub_feature2: '自动扣款',
+        sub_feature3: '便捷管理',
         support_title: '多种支付方式',
         support_desc: '支持支付宝、Visa等多种支付方式',
         security_title: '安全支付保障',
@@ -376,11 +409,16 @@
         main_title: 'Smart Payment',
         main_subtitle: 'Combining cutting-edge technology with ultimate security for seamless payment experience',
         sub_title: 'Redefining Transaction Experience',
-        checkout_title: 'Start Exploring',
-        checkout_desc: 'Experience the complete shopping and payment process',
+        normal_title: 'Normal Payment',
+        normal_desc: 'Experience the complete shopping and payment process',
+        subscription_title: 'Subscription Payment',
+        subscription_desc: 'Create subscription and use saved payment methods',
         feature1: 'Product Selection',
         feature2: 'Multiple Payments',
         feature3: 'Secure & Reliable',
+        sub_feature1: 'Save Card',
+        sub_feature2: 'Auto Charge',
+        sub_feature3: 'Easy Management',
         support_title: 'Multiple Payment Methods',
         support_desc: 'Supports Alipay, Visa and more',
         security_title: 'Secure Payment',
@@ -399,11 +437,16 @@
       const t = translations[lang];
       document.getElementById('main-title-highlight').textContent = t.main_title;
       document.getElementById('main-subtitle').textContent = t.main_subtitle;
-      document.getElementById('checkout-title').textContent = t.checkout_title;
-      document.getElementById('checkout-desc').textContent = t.checkout_desc;
+      document.getElementById('normal-title').textContent = t.normal_title;
+      document.getElementById('normal-desc').textContent = t.normal_desc;
+      document.getElementById('subscription-title').textContent = t.subscription_title;
+      document.getElementById('subscription-desc').textContent = t.subscription_desc;
       document.getElementById('feature1').textContent = t.feature1;
       document.getElementById('feature2').textContent = t.feature2;
       document.getElementById('feature3').textContent = t.feature3;
+      document.getElementById('sub-feature1').textContent = t.sub_feature1;
+      document.getElementById('sub-feature2').textContent = t.sub_feature2;
+      document.getElementById('sub-feature3').textContent = t.sub_feature3;
       document.getElementById('support-title').textContent = t.support_title;
       document.getElementById('support-desc').textContent = t.support_desc;
       document.getElementById('security-title').textContent = t.security_title;

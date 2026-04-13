@@ -499,13 +499,17 @@ function updateLanguage(lang) {
 
 async function processLinkPayPayment() {
   const total = calculateTotal();
+  const isSubscription = localStorage.getItem('isSubscription') === 'true';
+  const userReference = localStorage.getItem('lastUserReference') || 'user_' + Date.now();
   
   try {
     const response = await fetch('/linkpay/create-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: total
+        amount: total,
+        userReference: userReference,
+        isSubscription: isSubscription
       })
     });
 
@@ -515,6 +519,7 @@ async function processLinkPayPayment() {
       localStorage.setItem('lastOrderId', data.orderId);
       localStorage.setItem('lastOrderAmount', total);
       localStorage.setItem('lastOrderMethod', 'LinkPay');
+      localStorage.setItem('lastUserReference', userReference);
       window.location.href = data.paymentLink;
     } else {
       throw new Error(data.error || t('payment_failed'));
@@ -593,7 +598,7 @@ function initDropInSDK(sessionID) {
     dropInApp.style.background = '#ffffff';
     dropInApp.style.borderRadius = '12px';
     dropInApp.style.padding = '20px';
-    dropInApp.style.minHeight = '400px';
+    dropInApp.style.minHeight = '250px';
     
     const sdk = new window.DropInSDK({
       id: '#dropInApp',
@@ -634,7 +639,7 @@ function initDropInSDK(sessionID) {
   }
 }
 
-function showPaymentSuccess(orderId, amount, method) {
+function showPaymentSuccess(orderId, amount, method, shouldCheckToken = true) {
   showStep(3);
   
   document.getElementById('order-id').textContent = orderId;
@@ -653,6 +658,21 @@ function showPaymentSuccess(orderId, amount, method) {
     if (subscriptionInfo && subscriptionUserRef) {
       subscriptionInfo.classList.remove('hidden');
       subscriptionUserRef.textContent = lastUserReference;
+    }
+    
+    // 只有首次订阅才需要调用查询接口保存 token
+    if (shouldCheckToken) {
+      fetch(`/linkpay/check-payment/${orderId}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Payment status check result:', data);
+          if (data.paymentMethod?.token?.value) {
+            console.log('Token saved successfully:', data.paymentMethod.token.value);
+          }
+        })
+        .catch(error => {
+          console.error('Error checking payment status:', error);
+        });
     }
   }
   
@@ -673,6 +693,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const orderId = urlParams.get('orderId');
   const amount = urlParams.get('amount');
   const method = urlParams.get('method');
+  const mode = urlParams.get('mode');
+  
+  // 根据模式显示/隐藏订阅支付模块
+  const subscriptionSection = document.getElementById('subscription-section');
+  const paymentMethodsSection = document.getElementById('payment-methods-section');
+  const paymentMethodTitle = document.getElementById('payment-method-title');
+  
+  if (mode === 'subscription') {
+    // 订阅模式：显示订阅模块，隐藏支付方式选择
+    if (subscriptionSection) {
+      subscriptionSection.classList.remove('hidden');
+    }
+    if (paymentMethodsSection) {
+      paymentMethodsSection.classList.add('hidden');
+    }
+    // 自动设置 isSubscription 为 true
+    localStorage.setItem('isSubscription', 'true');
+  } else {
+    // 普通模式：隐藏订阅模块，显示支付方式选择
+    if (subscriptionSection) {
+      subscriptionSection.classList.add('hidden');
+    }
+    if (paymentMethodsSection) {
+      paymentMethodsSection.classList.remove('hidden');
+    }
+    localStorage.removeItem('isSubscription');
+  }
   
   if (paymentStatus === 'success' && orderId && amount) {
     showPaymentSuccess(orderId, parseFloat(amount), method || 'LinkPay');
@@ -841,6 +888,230 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = e.target.value.replace(/\D/g, '');
   });
 
+  // Apple Pay 支持
+  const applePayButton = document.getElementById('apple-pay-button');
+  if (applePayButton) {
+    // 暂时强制显示 Apple Pay 按钮，以便测试
+    applePayButton.style.display = 'block';
+    
+    // 检查浏览器是否支持 Apple Pay
+    if (window.ApplePaySession) {
+      const merchantIdentifier = 'merchant.evonettestdemo'; // 您的实际商户标识符
+      const promise = ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
+      promise.then((canMakePayments) => {
+        console.log('Apple Pay available:', canMakePayments);
+        if (!canMakePayments) {
+          // 即使没有可用卡片，也显示按钮，以便用户了解支持 Apple Pay
+          applePayButton.style.display = 'block';
+        }
+      });
+    } else if (window.PaymentRequest) {
+      // 检查是否支持 Payment Request API
+      console.log('Payment Request API available');
+      // 即使浏览器不支持 Apple Pay JS API，也显示按钮，以便用户了解支持 Apple Pay
+      applePayButton.style.display = 'block';
+    } else {
+      console.log('Apple Pay not supported in this browser');
+      // 即使浏览器不支持，也显示按钮，以便用户了解支持 Apple Pay
+      applePayButton.style.display = 'block';
+    }
+
+    // Apple Pay 按钮点击事件
+    applePayButton.addEventListener('click', async () => {
+      const currentTotal = calculateTotal();
+      const amount = customAmount > 0 ? customAmount : currentTotal;
+      
+      if (amount <= 0) {
+        showToast('请添加商品或设置支付金额');
+        return;
+      }
+
+      // 检查浏览器是否支持 Apple Pay JS API
+      if (window.ApplePaySession) {
+        // 使用 Apple Pay JS API
+        // 创建 Apple Pay 会话
+        const session = new ApplePaySession(3, {
+          countryCode: 'HK',
+          currencyCode: 'HKD',
+          supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+          merchantCapabilities: ['supports3DS'],
+          total: {
+            label: 'NEXUS PAY',
+            amount: amount.toFixed(2)
+          },
+          requiredBillingContactFields: ['email']
+        });
+
+        // 处理支付处理
+        session.onpaymentauthorized = async (event) => {
+          try {
+            const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const merchantTransTime = new Date().toISOString();
+            
+            // 获取 Apple Pay 支付令牌
+            const token = event.payment.token;
+            console.log('Apple Pay token:', token);
+            
+            // 构建支付数据 - 直接将 Apple Pay 令牌发送到后端
+            const paymentData = {
+              merchantTransInfo: {
+                merchantTransID: merchantTransID,
+                merchantTransTime: merchantTransTime
+              },
+              transAmount: {
+                currency: 'HKD',
+                value: amount.toFixed(2)
+              },
+              paymentMethod: {
+                type: 'token',
+                token: {
+                  value: token.paymentMethod.network, // 临时使用 network 作为 token value
+                  type: 'networkToken',
+                  paymentBrand: token.paymentMethod.network === 'visa' ? 'Visa' : token.paymentMethod.network === 'masterCard' ? 'Mastercard' : token.paymentMethod.network,
+                  walletIdentifiers: 'ApplePay',
+                  expiryDate: '0000', // 临时值，实际需要从解密的 paymentData 中获取
+                  tokenCryptogram: 'temp_cryptogram', // 临时值，实际需要从解密的 paymentData 中获取
+                  eci: '7' // 临时值，实际需要从解密的 paymentData 中获取
+                }
+              },
+              captureAfterHours: '0',
+              allowAuthentication: true,
+              returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
+              webhook: window.location.origin + '/webhook',
+              // 添加 Apple Pay 原始数据，供后端处理
+              applePayData: {
+                paymentToken: token
+              }
+            };
+
+            // 调用后端 API
+            const response = await fetch('/payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(paymentData)
+            });
+
+            const result = await response.json();
+            console.log('Apple Pay payment result:', result);
+
+            if (result.result && result.result.code.startsWith('S')) {
+              session.completePayment(ApplePaySession.STATUS_SUCCESS);
+              showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
+            } else {
+              session.completePayment(ApplePaySession.STATUS_FAILURE);
+              showToast('支付失败：' + (result.result?.message || '未知错误'));
+            }
+          } catch (error) {
+            console.error('Apple Pay error:', error);
+            session.completePayment(ApplePaySession.STATUS_FAILURE);
+            showToast('支付失败，请重试');
+          }
+        };
+
+        // 开始 Apple Pay 会话
+        session.begin();
+      } else if (window.PaymentRequest) {
+        // 使用 Payment Request API
+        try {
+          const paymentMethods = [
+            {
+              supportedMethods: 'https://apple.com/apple-pay',
+              data: {
+                version: 3,
+                merchantIdentifier: 'merchant.evonettestdemo',
+                merchantCapabilities: ['supports3DS'],
+                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+                countryCode: 'HK',
+                currencyCode: 'HKD'
+              }
+            }
+          ];
+
+          const paymentDetails = {
+            total: {
+              label: 'NEXUS PAY',
+              amount: {
+                currency: 'HKD',
+                value: amount.toFixed(2)
+              }
+            }
+          };
+
+          const options = {
+            requestPayerEmail: true
+          };
+
+          const paymentRequest = new PaymentRequest(paymentMethods, paymentDetails, options);
+          const paymentResponse = await paymentRequest.show();
+          
+          // 处理支付响应
+          const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          const merchantTransTime = new Date().toISOString();
+          
+          // 构建支付数据
+          const paymentData = {
+            merchantTransInfo: {
+              merchantTransID: merchantTransID,
+              merchantTransTime: merchantTransTime
+            },
+            transAmount: {
+              currency: 'HKD',
+              value: amount.toFixed(2)
+            },
+            paymentMethod: {
+              type: 'token',
+              token: {
+                value: 'apple_pay_token', // 临时值
+                type: 'networkToken',
+                paymentBrand: 'Apple Pay',
+                walletIdentifiers: 'ApplePay',
+                expiryDate: '0000', // 临时值
+                tokenCryptogram: 'temp_cryptogram', // 临时值
+                eci: '7' // 临时值
+              }
+            },
+            captureAfterHours: '0',
+            allowAuthentication: true,
+            returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
+            webhook: window.location.origin + '/webhook',
+            // 添加 Apple Pay 原始数据，供后端处理
+            applePayData: {
+              paymentResponse: paymentResponse
+            }
+          };
+
+          // 调用后端 API
+          const response = await fetch('/payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentData)
+          });
+
+          const result = await response.json();
+          console.log('Apple Pay payment result:', result);
+
+          if (result.result && result.result.code.startsWith('S')) {
+            await paymentResponse.complete('success');
+            showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
+          } else {
+            await paymentResponse.complete('fail');
+            showToast('支付失败：' + (result.result?.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('Payment Request API error:', error);
+          showToast('支付失败，请重试');
+        }
+      } else {
+        // 浏览器不支持 Apple Pay
+        showToast('您的浏览器不支持 Apple Pay，请使用 Safari 浏览器或其他支持 Apple Pay 的浏览器');
+      }
+    });
+  }
+
   // Direct API 支付表单提交
   directPaymentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -984,9 +1255,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // 创建订阅支付（首次订阅）
-  if (createSubscriptionBtn) {
-    createSubscriptionBtn.addEventListener('click', async () => {
+  // 首次订阅 - LinkPay
+  const createSubscriptionLinkPayBtn = document.getElementById('create-subscription-linkpay-btn');
+  if (createSubscriptionLinkPayBtn) {
+    createSubscriptionLinkPayBtn.addEventListener('click', async () => {
       const userReference = subscriptionUserReference.value.trim();
       if (!userReference) {
         showToast(t('subscription_user_reference') + ' ' + t('select_payment_first'));
@@ -999,9 +1271,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      const originalBtnText = createSubscriptionBtn.innerHTML;
-      createSubscriptionBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>' + t('subscription_loading') + '</span>';
-      createSubscriptionBtn.disabled = true;
+      const originalBtnText = createSubscriptionLinkPayBtn.innerHTML;
+      createSubscriptionLinkPayBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>' + t('subscription_loading') + '</span>';
+      createSubscriptionLinkPayBtn.disabled = true;
       
       try {
         // 使用 LinkPay 创建订阅支付
@@ -1031,8 +1303,85 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Create subscription error:', error);
         showToast(t('subscription_payment_failed') + ': ' + error.message);
       } finally {
-        createSubscriptionBtn.innerHTML = originalBtnText;
-        createSubscriptionBtn.disabled = false;
+        createSubscriptionLinkPayBtn.innerHTML = originalBtnText;
+        createSubscriptionLinkPayBtn.disabled = false;
+      }
+    });
+  }
+  
+  // 首次订阅 - Dropin
+  const createSubscriptionDropinBtn = document.getElementById('create-subscription-dropin-btn');
+  if (createSubscriptionDropinBtn) {
+    createSubscriptionDropinBtn.addEventListener('click', async () => {
+      const userReference = subscriptionUserReference.value.trim();
+      if (!userReference) {
+        showToast(t('subscription_user_reference') + ' ' + t('select_payment_first'));
+        return;
+      }
+      
+      const total = calculateTotal();
+      if (total === 0) {
+        showToast(t('empty_cart'));
+        return;
+      }
+      
+      const originalBtnText = createSubscriptionDropinBtn.innerHTML;
+      createSubscriptionDropinBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>' + t('subscription_loading') + '</span>';
+      createSubscriptionDropinBtn.disabled = true;
+      
+      try {
+        // 使用 Dropin 创建订阅支付
+        const response = await fetch('/dropin/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: total,
+            userReference: userReference,
+            isSubscription: true
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.sessionId) {
+          localStorage.setItem('lastOrderId', data.orderId);
+          localStorage.setItem('lastOrderAmount', total);
+          localStorage.setItem('lastOrderMethod', 'Dropin Subscription');
+          localStorage.setItem('lastUserReference', userReference);
+          localStorage.setItem('isSubscription', 'true');
+          
+          // 显示 Dropin 容器
+          const dropinContainer = document.getElementById('dropin-container');
+          if (dropinContainer) {
+            dropinContainer.classList.remove('hidden');
+            dropinContainer.classList.add('show');
+            
+            // 加载 Dropin 组件
+            const dropInApp = document.getElementById('dropInApp');
+            dropInApp.innerHTML = `
+              <div class="loading-container">
+                <div class="loading-ring mb-6"></div>
+                <p class="text-white text-lg font-medium">${t('loading_payment')}</p>
+                <p class="text-gray-400 text-sm mt-2">${t('connecting')}</p>
+              </div>
+            `;
+            
+            // 动态加载 Dropin 脚本
+            const script = document.createElement('script');
+            script.src = `https://sandbox.evonetonline.com/dropin/${data.sessionId}`;
+            document.head.appendChild(script);
+            
+            showToast('Dropin 组件已加载，请完成支付');
+          }
+        } else {
+          throw new Error(data.error || t('subscription_payment_failed'));
+        }
+      } catch (error) {
+        console.error('Create subscription error:', error);
+        showToast(t('subscription_payment_failed') + ': ' + error.message);
+      } finally {
+        createSubscriptionDropinBtn.innerHTML = originalBtnText;
+        createSubscriptionDropinBtn.disabled = false;
       }
     });
   }
@@ -1071,7 +1420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (response.ok && data.result) {
           if (data.result.result && data.result.result.code.startsWith('S')) {
-            showPaymentSuccess(data.orderId, total, 'Subscription MIT');
+            showPaymentSuccess(data.orderId, total, 'Subscription MIT', false);
             showToast(t('subscription_payment_success'));
           } else {
             throw new Error(data.result.result?.message || t('subscription_payment_failed'));

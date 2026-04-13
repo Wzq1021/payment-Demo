@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -75,8 +75,8 @@
           subscription_user_reference_placeholder: '输入用户参考ID',
           subscription_has_token: '已存在订阅支付方式',
           subscription_no_token: '未找到订阅支付方式',
-          subscription_pay_with_token: '使用已保存的支付方式',
-          subscription_create_token: '创建新的订阅支付方式',
+          subscription_pay_with_token: '后续订阅',
+          subscription_create_token: '首次订阅',
           subscription_payment_success: '订阅支付成功',
           subscription_payment_failed: '订阅支付失败',
           subscription_token_saved: '支付方式已保存，可用于后续订阅',
@@ -147,8 +147,8 @@
           subscription_user_reference_placeholder: 'Enter user reference ID',
           subscription_has_token: 'Subscription payment method exists',
           subscription_no_token: 'No subscription payment method found',
-          subscription_pay_with_token: 'Pay with saved payment method',
-          subscription_create_token: 'Create new subscription payment method',
+          subscription_pay_with_token: 'Subsequent Subscription',
+          subscription_create_token: 'First-time Subscription',
           subscription_payment_success: 'Subscription payment successful',
           subscription_payment_failed: 'Subscription payment failed',
           subscription_token_saved: 'Payment method saved for future subscriptions',
@@ -523,8 +523,15 @@
     .dropin-inner {
       background: #ffffff;
       padding: 24px;
-      min-height: 400px;
+      min-height: 300px;
       border-radius: 0 0 20px 20px;
+      max-height: 400px;
+      overflow: auto;
+    }
+    
+    .cil-dropIn-container.embedded-container {
+      max-height: 350px !important;
+      overflow: auto !important;
     }
     
     .loading-container {
@@ -877,67 +884,69 @@
                 </div>
                 
                 <!-- LinkPay - 跳转支付 -->
-                <div class="mb-4">
-                  <div class="payment-method-card" data-method="linkpay">
-                    <div class="relative z-10 flex items-center justify-between">
-                      <div class="flex items-center">
-                        <div class="icon-box linkpay mr-4">
-                          <img src="https://files.readme.io/45e3591-browser.png" alt="LinkPay" class="w-8 h-8 object-contain">
+                <div id="payment-methods-section">
+                  <div class="mb-4">
+                    <div class="payment-method-card" data-method="linkpay">
+                      <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center">
+                          <div class="icon-box linkpay mr-4">
+                            <img src="https://files.readme.io/45e3591-browser.png" alt="LinkPay" class="w-8 h-8 object-contain">
+                          </div>
+                          <div>
+                            <h3 class="text-xl font-bold text-white">LinkPay</h3>
+                            <p class="text-sm text-gray-400" id="linkpay-desc"><script>document.write(window.__initialTranslations.linkpay_desc)</script></p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 class="text-xl font-bold text-white">LinkPay</h3>
-                          <p class="text-sm text-gray-400" id="linkpay-desc"><script>document.write(window.__initialTranslations.linkpay_desc)</script></p>
+                        <div class="check-icon">
+                          <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                         </div>
-                      </div>
-                      <div class="check-icon">
-                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Dropin - 内嵌支付组件 -->
-                <div class="mb-4">
-                  <div class="payment-method-card" data-method="dropin">
-                    <div class="relative z-10 flex items-center justify-between">
-                      <div class="flex items-center">
-                        <div class="icon-box dropin mr-4">
-                          <img src="https://files.readme.io/3f89d1a-subscription.png" alt="Dropin" class="w-8 h-8 object-contain">
+                  <!-- Dropin - 内嵌支付组件 -->
+                  <div class="mb-4">
+                    <div class="payment-method-card" data-method="dropin">
+                      <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center">
+                          <div class="icon-box dropin mr-4">
+                            <img src="https://files.readme.io/3f89d1a-subscription.png" alt="Dropin" class="w-8 h-8 object-contain">
+                          </div>
+                          <div>
+                            <h3 class="text-xl font-bold text-white">Dropin</h3>
+                            <p class="text-sm text-gray-400" id="dropin-desc"><script>document.write(window.__initialTranslations.dropin_desc)</script></p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 class="text-xl font-bold text-white">Dropin</h3>
-                          <p class="text-sm text-gray-400" id="dropin-desc"><script>document.write(window.__initialTranslations.dropin_desc)</script></p>
+                        <div class="check-icon">
+                          <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                         </div>
-                      </div>
-                      <div class="check-icon">
-                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Direct API - 直连API -->
-                <div>
-                  <div class="payment-method-card" data-method="direct">
-                    <div class="relative z-10 flex items-center justify-between">
-                      <div class="flex items-center">
-                        <div class="icon-box direct mr-4">
-                          <img src="https://files.readme.io/914be8b-api.png" alt="Direct API" class="w-8 h-8 object-contain">
+                  <!-- Direct API - 直连API -->
+                  <div>
+                    <div class="payment-method-card" data-method="direct">
+                      <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center">
+                          <div class="icon-box direct mr-4">
+                            <img src="https://files.readme.io/914be8b-api.png" alt="Direct API" class="w-8 h-8 object-contain">
+                          </div>
+                          <div>
+                            <h3 class="text-xl font-bold text-white">Direct API</h3>
+                            <p class="text-sm text-gray-400" id="direct-desc"><script>document.write(window.__initialTranslations.direct_desc)</script></p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 class="text-xl font-bold text-white">Direct API</h3>
-                          <p class="text-sm text-gray-400" id="direct-desc"><script>document.write(window.__initialTranslations.direct_desc)</script></p>
+                        <div class="check-icon">
+                          <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                         </div>
-                      </div>
-                      <div class="check-icon">
-                        <i class="fas fa-check text-sm" style="color: var(--dark-bg);"></i>
                       </div>
                     </div>
                   </div>
                 </div>
                 
                 <!-- 订阅管理 -->
-                <div class="mt-8">
+                <div id="subscription-section" class="mt-8">
                   <div class="glass-card p-6">
                     <div class="flex items-center mb-6">
                       <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-4" style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3);">
@@ -977,10 +986,22 @@
                       
                       <!-- 订阅支付按钮 -->
                       <div class="space-y-3">
-                        <button id="create-subscription-btn" class="btn-primary w-full py-3 flex items-center justify-center">
-                          <i class="fas fa-plus-circle mr-2"></i>
-                          <span><script>document.write(window.__initialTranslations.subscription_create_token)</script></span>
-                        </button>
+                        <!-- 首次订阅：选择支付方式 -->
+                        <div id="first-time-subscription-section">
+                          <p class="text-sm text-gray-400 mb-2">首次订阅 - 选择支付方式：</p>
+                          <div class="grid grid-cols-2 gap-3">
+                            <button id="create-subscription-linkpay-btn" class="btn-secondary py-3 flex items-center justify-center">
+                              <i class="fas fa-external-link-alt mr-2"></i>
+                              <span>LinkPay</span>
+                            </button>
+                            <button id="create-subscription-dropin-btn" class="btn-secondary py-3 flex items-center justify-center">
+                              <i class="fas fa-credit-card mr-2"></i>
+                              <span>Dropin</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <!-- 后续订阅 -->
                         <button id="pay-with-subscription-btn" class="btn-primary w-full py-3 flex items-center justify-center" disabled>
                           <i class="fas fa-credit-card mr-2"></i>
                           <span><script>document.write(window.__initialTranslations.subscription_pay_with_token)</script></span>
@@ -1096,6 +1117,16 @@
                         </div>
                       </div>
 
+                      <!-- Apple Pay 按钮 -->
+                      <div class="pt-4">
+                        <button id="apple-pay-button" class="w-full py-4 rounded-xl flex items-center justify-center" style="background-color: #000000; color: white; font-size: 16px; font-weight: 500;">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
+                            <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
+                          </svg>
+                          使用 Apple Pay 支付
+                        </button>
+                      </div>
+                      
                       <div class="pt-4">
                         <button type="submit" id="direct-pay-btn" class="w-full btn-primary py-4 text-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);">
                           <i class="fas fa-lock mr-3"></i>
