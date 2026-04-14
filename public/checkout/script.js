@@ -1070,6 +1070,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (paymentResponse.methodName === 'https://apple.com/apple-pay') {
               // Apple Pay 支付
+              console.log('Apple Pay paymentResponse:', paymentResponse);
+              console.log('Apple Pay paymentResponse.details:', paymentResponse.details);
+              
+              // 获取 Apple Pay 支付数据
+              const applePayPaymentData = paymentResponse.details;
+              
               paymentData = {
                 merchantTransInfo: {
                   merchantTransID: merchantTransID,
@@ -1082,20 +1088,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentMethod: {
                   type: 'token',
                   token: {
-                    value: 'apple_pay_token',
+                    value: applePayPaymentData.token ? applePayPaymentData.token : 'apple_pay_token',
                     type: 'networkToken',
                     paymentBrand: 'Apple Pay',
                     walletIdentifiers: 'ApplePay',
                     expiryDate: '0000',
-                    tokenCryptogram: 'temp_cryptogram',
-                    eci: '7'
+                    tokenCryptogram: applePayPaymentData.paymentData ? applePayPaymentData.paymentData.onlinePaymentCryptogram : 'temp_cryptogram',
+                    eci: applePayPaymentData.paymentData ? applePayPaymentData.paymentData.eciIndicator : '7'
                   }
                 },
                 captureAfterHours: '0',
                 allowAuthentication: true,
                 returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
-                webhook: window.location.origin + '/webhook'
+                webhook: window.location.origin + '/webhook',
+                // 添加 Apple Pay 原始数据，供后端处理
+                applePayData: {
+                  paymentToken: applePayPaymentData
+                }
               };
+              console.log('Apple Pay paymentData:', paymentData);
             } else {
               // 普通卡片支付
               paymentData = {
