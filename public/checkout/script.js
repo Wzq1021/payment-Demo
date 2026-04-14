@@ -899,18 +899,25 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Apple Pay available:', canMakePayments);
         applePayButton.style.display = 'block';
       });
-    } else if (window.PaymentRequest) {
-      // 检查是否支持 Payment Request API
-      console.log('Payment Request API available');
-      // 更改按钮文本为通用卡片支付
-      applePayButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i>使用卡片支付';
-      applePayButton.style.backgroundColor = '#1a1a2e';
-      applePayButton.style.border = '1px solid var(--primary)';
-      applePayButton.style.color = 'var(--primary)';
-      applePayButton.style.display = 'block';
     } else {
-      console.log('Payment methods not supported in this browser');
-      applePayButton.style.display = 'none';
+      // 检查是否支持 Apple Pay 通过其他方式
+      const isAppleDevice = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
+      if (isAppleDevice && window.PaymentRequest) {
+        // 在 Apple 设备上，尝试使用 Apple Pay
+        console.log('Apple device detected, attempting Apple Pay via Payment Request API');
+        applePayButton.style.display = 'block';
+      } else if (window.PaymentRequest) {
+        // 在非 Apple 设备上，显示通用卡片支付
+        console.log('Payment Request API available on non-Apple device');
+        applePayButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i>使用卡片支付';
+        applePayButton.style.backgroundColor = '#1a1a2e';
+        applePayButton.style.border = '1px solid var(--primary)';
+        applePayButton.style.color = 'var(--primary)';
+        applePayButton.style.display = 'block';
+      } else {
+        console.log('Payment methods not supported in this browser');
+        applePayButton.style.display = 'none';
+      }
     }
 
     // Apple Pay 按钮点击事件
@@ -1010,86 +1017,299 @@ document.addEventListener('DOMContentLoaded', () => {
         // 开始 Apple Pay 会话
         session.begin();
       } else if (window.PaymentRequest) {
-        // 使用 Payment Request API
-        try {
-          const paymentMethods = [
-            {
-              supportedMethods: 'basic-card',
-              data: {
-                supportedNetworks: ['visa', 'mastercard', 'amex', 'discover', 'jcb']
-              }
-            }
-          ];
-
-          const paymentDetails = {
-            total: {
-              label: 'NEXUS PAY',
-              amount: {
-                currency: 'HKD',
-                value: amount.toFixed(2)
-              }
-            }
-          };
-
-          const options = {
-            requestPayerEmail: true
-          };
-
-          const paymentRequest = new PaymentRequest(paymentMethods, paymentDetails, options);
-          const paymentResponse = await paymentRequest.show();
-          
-          // 处理支付响应
-          const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-          const merchantTransTime = new Date().toISOString();
-          
-          // 构建支付数据
-          const paymentData = {
-            merchantTransInfo: {
-              merchantTransID: merchantTransID,
-              merchantTransTime: merchantTransTime
-            },
-            transAmount: {
-              currency: 'HKD',
-              value: amount.toFixed(2)
-            },
-            paymentMethod: {
-              type: 'card',
-              card: {
-                cardInfo: {
-                  cardNumber: paymentResponse.details.cardNumber,
-                  expiryDate: paymentResponse.details.expiryMonth + paymentResponse.details.expiryYear.substring(2),
-                  holderName: paymentResponse.details.cardholderName
+        // 检查是否是 Apple 设备
+        const isAppleDevice = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
+        
+        if (isAppleDevice) {
+          // 在 Apple 设备上，尝试使用 Apple Pay via Payment Request API
+          try {
+            const paymentMethods = [
+              {
+                supportedMethods: 'https://apple.com/apple-pay',
+                data: {
+                  version: 3,
+                  merchantIdentifier: 'merchant.evonettestdemo',
+                  merchantCapabilities: ['supports3DS'],
+                  supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+                  countryCode: 'HK',
+                  currencyCode: 'HKD'
+                }
+              },
+              {
+                supportedMethods: 'basic-card',
+                data: {
+                  supportedNetworks: ['visa', 'mastercard', 'amex', 'discover', 'jcb']
                 }
               }
-            },
-            captureAfterHours: '0',
-            allowAuthentication: true,
-            returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Card%20Payment`,
-            webhook: window.location.origin + '/webhook'
-          };
+            ];
 
-          // 调用后端 API
-          const response = await fetch('/payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(paymentData)
-          });
+            const paymentDetails = {
+              total: {
+                label: 'NEXUS PAY',
+                amount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                }
+              }
+            };
 
-          const result = await response.json();
-          console.log('Card payment result:', result);
+            const options = {
+              requestPayerEmail: true
+            };
 
-          if (result.result && result.result.code.startsWith('S')) {
-            await paymentResponse.complete('success');
-            showPaymentSuccess(merchantTransID, amount, 'Card Payment');
-          } else {
-            await paymentResponse.complete('fail');
-            showToast('支付失败：' + (result.result?.message || '未知错误'));
+            const paymentRequest = new PaymentRequest(paymentMethods, paymentDetails, options);
+            const paymentResponse = await paymentRequest.show();
+            
+            // 处理支付响应
+            const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const merchantTransTime = new Date().toISOString();
+            
+            // 构建支付数据
+            let paymentData;
+            let paymentMethodName = 'Apple Pay';
+            
+            if (paymentResponse.methodName === 'https://apple.com/apple-pay') {
+              // Apple Pay 支付
+              paymentData = {
+                merchantTransInfo: {
+                  merchantTransID: merchantTransID,
+                  merchantTransTime: merchantTransTime
+                },
+                transAmount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                },
+                paymentMethod: {
+                  type: 'token',
+                  token: {
+                    value: 'apple_pay_token',
+                    type: 'networkToken',
+                    paymentBrand: 'Apple Pay',
+                    walletIdentifiers: 'ApplePay',
+                    expiryDate: '0000',
+                    tokenCryptogram: 'temp_cryptogram',
+                    eci: '7'
+                  }
+                },
+                captureAfterHours: '0',
+                allowAuthentication: true,
+                returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
+                webhook: window.location.origin + '/webhook'
+              };
+            } else {
+              // 普通卡片支付
+              paymentData = {
+                merchantTransInfo: {
+                  merchantTransID: merchantTransID,
+                  merchantTransTime: merchantTransTime
+                },
+                transAmount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                },
+                paymentMethod: {
+                  type: 'card',
+                  card: {
+                    cardInfo: {
+                      cardNumber: paymentResponse.details.cardNumber,
+                      expiryDate: paymentResponse.details.expiryMonth + paymentResponse.details.expiryYear.substring(2),
+                      holderName: paymentResponse.details.cardholderName
+                    }
+                  }
+                },
+                captureAfterHours: '0',
+                allowAuthentication: true,
+                returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Card%20Payment`,
+                webhook: window.location.origin + '/webhook'
+              };
+              paymentMethodName = 'Card Payment';
+            }
+
+            // 调用后端 API
+            const response = await fetch('/payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(paymentData)
+            });
+
+            const result = await response.json();
+            console.log(`${paymentMethodName} payment result:`, result);
+
+            if (result.result && result.result.code.startsWith('S')) {
+              await paymentResponse.complete('success');
+              showPaymentSuccess(merchantTransID, amount, paymentMethodName);
+            } else {
+              await paymentResponse.complete('fail');
+              showToast('支付失败：' + (result.result?.message || '未知错误'));
+            }
+          } catch (error) {
+            console.error('Apple Pay via Payment Request API error:', error);
+            // 如果 Apple Pay 失败，回退到普通卡片支付
+            try {
+              const paymentMethods = [
+                {
+                  supportedMethods: 'basic-card',
+                  data: {
+                    supportedNetworks: ['visa', 'mastercard', 'amex', 'discover', 'jcb']
+                  }
+                }
+              ];
+
+              const paymentDetails = {
+                total: {
+                  label: 'NEXUS PAY',
+                  amount: {
+                    currency: 'HKD',
+                    value: amount.toFixed(2)
+                  }
+                }
+              };
+
+              const options = {
+                requestPayerEmail: true
+              };
+
+              const paymentRequest = new PaymentRequest(paymentMethods, paymentDetails, options);
+              const paymentResponse = await paymentRequest.show();
+              
+              // 处理支付响应
+              const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+              const merchantTransTime = new Date().toISOString();
+              
+              // 构建支付数据
+              const paymentData = {
+                merchantTransInfo: {
+                  merchantTransID: merchantTransID,
+                  merchantTransTime: merchantTransTime
+                },
+                transAmount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                },
+                paymentMethod: {
+                  type: 'card',
+                  card: {
+                    cardInfo: {
+                      cardNumber: paymentResponse.details.cardNumber,
+                      expiryDate: paymentResponse.details.expiryMonth + paymentResponse.details.expiryYear.substring(2),
+                      holderName: paymentResponse.details.cardholderName
+                    }
+                  }
+                },
+                captureAfterHours: '0',
+                allowAuthentication: true,
+                returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Card%20Payment`,
+                webhook: window.location.origin + '/webhook'
+              };
+
+              // 调用后端 API
+              const response = await fetch('/payment', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(paymentData)
+              });
+
+              const result = await response.json();
+              console.log('Card payment result:', result);
+
+              if (result.result && result.result.code.startsWith('S')) {
+                await paymentResponse.complete('success');
+                showPaymentSuccess(merchantTransID, amount, 'Card Payment');
+              } else {
+                await paymentResponse.complete('fail');
+                showToast('支付失败：' + (result.result?.message || '未知错误'));
+              }
+            } catch (fallbackError) {
+              console.error('Fallback payment error:', fallbackError);
+              showToast('支付失败，请重试');
+            }
           }
-        } catch (error) {
-          console.error('Payment Request API error:', error);
-          showToast('支付失败，请重试');
+        } else {
+          // 在非 Apple 设备上，使用普通卡片支付
+          try {
+            const paymentMethods = [
+              {
+                supportedMethods: 'basic-card',
+                data: {
+                  supportedNetworks: ['visa', 'mastercard', 'amex', 'discover', 'jcb']
+                }
+              }
+            ];
+
+            const paymentDetails = {
+              total: {
+                label: 'NEXUS PAY',
+                amount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                }
+              }
+            };
+
+            const options = {
+              requestPayerEmail: true
+            };
+
+            const paymentRequest = new PaymentRequest(paymentMethods, paymentDetails, options);
+            const paymentResponse = await paymentRequest.show();
+            
+            // 处理支付响应
+            const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const merchantTransTime = new Date().toISOString();
+            
+            // 构建支付数据
+            const paymentData = {
+              merchantTransInfo: {
+                merchantTransID: merchantTransID,
+                merchantTransTime: merchantTransTime
+              },
+              transAmount: {
+                currency: 'HKD',
+                value: amount.toFixed(2)
+              },
+              paymentMethod: {
+                type: 'card',
+                card: {
+                  cardInfo: {
+                    cardNumber: paymentResponse.details.cardNumber,
+                    expiryDate: paymentResponse.details.expiryMonth + paymentResponse.details.expiryYear.substring(2),
+                    holderName: paymentResponse.details.cardholderName
+                  }
+                }
+              },
+              captureAfterHours: '0',
+              allowAuthentication: true,
+              returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Card%20Payment`,
+              webhook: window.location.origin + '/webhook'
+            };
+
+            // 调用后端 API
+            const response = await fetch('/payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(paymentData)
+            });
+
+            const result = await response.json();
+            console.log('Card payment result:', result);
+
+            if (result.result && result.result.code.startsWith('S')) {
+              await paymentResponse.complete('success');
+              showPaymentSuccess(merchantTransID, amount, 'Card Payment');
+            } else {
+              await paymentResponse.complete('fail');
+              showToast('支付失败：' + (result.result?.message || '未知错误'));
+            }
+          } catch (error) {
+            console.error('Payment Request API error:', error);
+            showToast('支付失败，请重试');
+          }
         }
       } else {
         // 浏览器不支持支付方式
