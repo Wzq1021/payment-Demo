@@ -896,14 +896,64 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('window.ApplePaySession:', window.ApplePaySession);
     console.log('window.PaymentRequest:', window.PaymentRequest);
     
-    // 检查是否支持 Apple Pay（Safari 或其他支持 Payment Request API 的浏览器）
-    if (window.ApplePaySession || window.PaymentRequest) {
-      console.log('Apple Pay supported via Apple Pay JS API or Payment Request API');
-      applePayButton.style.display = 'block';
-    } else {
-      console.log('Apple Pay not supported in this browser');
-      applePayButton.style.display = 'none';
+    // 检查是否支持 Apple Pay
+    async function checkApplePaySupport() {
+      if (window.ApplePaySession) {
+        // Safari 浏览器
+        const merchantIdentifier = 'merchant.evonettestdemo';
+        const canMakePayments = await ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
+        console.log('Apple Pay supported in Safari:', canMakePayments);
+        return canMakePayments;
+      } else if (window.PaymentRequest) {
+        // 其他支持 Payment Request API 的浏览器
+        try {
+          const paymentMethods = [
+            {
+              supportedMethods: 'https://apple.com/apple-pay',
+              data: {
+                version: 3,
+                merchantIdentifier: 'merchant.evonettestdemo',
+                merchantCapabilities: ['supports3DS'],
+                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+                countryCode: 'HK',
+                currencyCode: 'HKD'
+              }
+            }
+          ];
+          
+          const paymentRequest = new PaymentRequest(paymentMethods, {
+            total: {
+              label: 'Test',
+              amount: {
+                currency: 'HKD',
+                value: '0.01'
+              }
+            }
+          });
+          
+          const canShow = await paymentRequest.canMakePayment();
+          console.log('Apple Pay supported via Payment Request API:', canShow);
+          return canShow;
+        } catch (error) {
+          console.error('Error checking Apple Pay support:', error);
+          return false;
+        }
+      } else {
+        console.log('Apple Pay not supported in this browser');
+        return false;
+      }
     }
+    
+    // 检查 Apple Pay 支持并显示/隐藏按钮
+    checkApplePaySupport().then(supported => {
+      if (supported) {
+        console.log('Apple Pay is supported, showing button');
+        applePayButton.style.display = 'block';
+      } else {
+        console.log('Apple Pay is not supported, hiding button');
+        applePayButton.style.display = 'none';
+      }
+    });
 
     // Apple Pay 按钮点击事件
     applePayButton.addEventListener('click', async () => {
