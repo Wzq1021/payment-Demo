@@ -891,17 +891,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Apple Pay 支持
   const applePayButton = document.getElementById('apple-pay-button');
   if (applePayButton) {
+    console.log('Apple Pay button found');
+    console.log('User agent:', navigator.userAgent);
+    console.log('window.ApplePaySession:', window.ApplePaySession);
+    console.log('window.PaymentRequest:', window.PaymentRequest);
+    
     // 检查浏览器是否支持 Apple Pay
     if (window.ApplePaySession) {
+      console.log('Apple Pay JS API is available');
       const merchantIdentifier = 'merchant.evonettestdemo'; // 您的实际商户标识符
       const promise = ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
       promise.then((canMakePayments) => {
-        console.log('Apple Pay available:', canMakePayments);
+        console.log('Apple Pay available with active card:', canMakePayments);
+        applePayButton.style.display = 'block';
+      }).catch((error) => {
+        console.error('Error checking Apple Pay availability:', error);
+        // 即使出错，也显示按钮
         applePayButton.style.display = 'block';
       });
     } else {
       // 检查是否支持 Apple Pay 通过其他方式
       const isAppleDevice = /Mac|iPhone|iPod|iPad/.test(navigator.userAgent);
+      console.log('Is Apple device:', isAppleDevice);
+      
       if (isAppleDevice && window.PaymentRequest) {
         // 在 Apple 设备上，尝试使用 Apple Pay
         console.log('Apple device detected, attempting Apple Pay via Payment Request API');
@@ -922,8 +934,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Apple Pay 按钮点击事件
     applePayButton.addEventListener('click', async () => {
+      console.log('Apple Pay button clicked');
       const currentTotal = calculateTotal();
       const amount = customAmount > 0 ? customAmount : currentTotal;
+      
+      console.log('Payment amount:', amount);
       
       if (amount <= 0) {
         showToast('请添加商品或设置支付金额');
@@ -931,6 +946,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 检查浏览器是否支持 Apple Pay JS API
+      console.log('Checking browser support...');
+      console.log('window.ApplePaySession:', window.ApplePaySession);
+      console.log('window.PaymentRequest:', window.PaymentRequest);
+      
       if (window.ApplePaySession) {
         // 使用 Apple Pay JS API
         // 创建 Apple Pay 会话
