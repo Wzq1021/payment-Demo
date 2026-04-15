@@ -937,6 +937,12 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         console.log('Apple Pay is not supported, hiding button');
         applePayButton.style.display = 'none';
+        // 在Safari浏览器中，如果Apple Pay不可用，显示提示
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (isSafari) {
+          console.log('Apple Pay is not available in Safari. Please check if Apple Pay is set up on your device.');
+          // 可以在这里添加一个提示，告诉用户需要在设备上设置Apple Pay
+        }
       }
     });
 
