@@ -898,46 +898,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 检查是否支持 Apple Pay
     async function checkApplePaySupport() {
+      // 检查是否是 Safari 浏览器
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      console.log('Is Safari browser:', isSafari);
+      
       if (window.ApplePaySession) {
         // Safari 浏览器
-        const merchantIdentifier = 'merchant.evonettestdemo';
-        const canMakePayments = await ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
-        console.log('Apple Pay supported in Safari:', canMakePayments);
-        return canMakePayments;
-      } else if (window.PaymentRequest) {
-        // 其他支持 Payment Request API 的浏览器
         try {
-          const paymentMethods = [
-            {
-              supportedMethods: 'https://apple.com/apple-pay',
-              data: {
-                version: 3,
-                merchantIdentifier: 'merchant.evonettestdemo',
-                merchantCapabilities: ['supports3DS'],
-                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
-                countryCode: 'HK',
-                currencyCode: 'HKD'
-              }
-            }
-          ];
-          
-          const paymentRequest = new PaymentRequest(paymentMethods, {
-            total: {
-              label: 'Test',
-              amount: {
-                currency: 'HKD',
-                value: '0.01'
-              }
-            }
-          });
-          
-          const canShow = await paymentRequest.canMakePayment();
-          console.log('Apple Pay supported via Payment Request API:', canShow);
-          return canShow;
+          const merchantIdentifier = 'merchant.evonettestdemo';
+          const canMakePayments = await ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
+          console.log('Apple Pay supported in Safari:', canMakePayments);
+          return canMakePayments;
         } catch (error) {
-          console.error('Error checking Apple Pay support:', error);
+          console.error('Error checking Apple Pay in Safari:', error);
           return false;
         }
+      } else if (window.PaymentRequest) {
+        // 其他支持 Payment Request API 的浏览器
+        // 注意：Apple Pay 在非 Safari 浏览器中可能需要额外配置
+        console.log('Checking Apple Pay support via Payment Request API...');
+        console.log('Note: Apple Pay in non-Safari browsers may require additional configuration');
+        console.log('Possible reasons for non-support:');
+        console.log('1. Browser/OS limitations (Apple Pay typically works best in Safari on macOS/iOS)');
+        console.log('2. Domain verification requirements');
+        console.log('3. Apple Pay not set up on the device');
+        return false; // 暂时返回 false，因为非 Safari 浏览器的 Apple Pay 支持有限
       } else {
         console.log('Apple Pay not supported in this browser');
         return false;
