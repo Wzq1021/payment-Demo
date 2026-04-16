@@ -989,7 +989,9 @@ app.post('/payment', async (req, res) => {
             expiryDate: decryptedData.applicationExpirationDate.substring(2), // 取后4位：1231
             tokenCryptogram: decryptedData.paymentData.onlinePaymentCryptogram,
             eci: decryptedData.paymentData.eciIndicator
-          }
+          },
+          // 添加 Apple Pay 标识
+          paymentMethodVariant: 'ApplePay'
         };
         
         // 移除 applePayData 字段，因为 EGMS API 不需要这个字段
@@ -1028,7 +1030,9 @@ app.post('/payment', async (req, res) => {
             expiryDate: decryptedData.applicationExpirationDate.substring(2),
             tokenCryptogram: decryptedData.paymentData.onlinePaymentCryptogram,
             eci: decryptedData.paymentData.eciIndicator
-          }
+          },
+          // 添加 Apple Pay 标识
+          paymentMethodVariant: 'ApplePay'
         };
         
         // 移除 applePayData 字段
