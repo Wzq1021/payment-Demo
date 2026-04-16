@@ -1087,8 +1087,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Apple Pay payment result:', result);
 
             if (result.result && result.result.code.startsWith('S')) {
-              session.completePayment(ApplePaySession.STATUS_SUCCESS);
-              showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
+              if (result.action && result.action.type === 'threeDSRedirect') {
+                // 需要进行3DS认证
+                session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                showToast('正在进行安全认证...');
+                window.location.href = result.action.threeDSData.url;
+              } else {
+                session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
+              }
             } else {
               session.completePayment(ApplePaySession.STATUS_FAILURE);
               showToast('支付失败：' + (result.result?.message || '未知错误'));
