@@ -921,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
             {
               supportedMethods: 'https://apple.com/apple-pay',
               data: {
-                version: 3,
+                version: 12,
                 merchantIdentifier: 'merchant.evonettestdemo',
                 merchantCapabilities: ['supports3DS'],
                 supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
