@@ -973,24 +973,18 @@ document.addEventListener('DOMContentLoaded', () => {
     checkApplePaySupport().then(supported => {
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       
-      if (supported) {
-        console.log('Apple Pay is supported, showing button');
+      // 只有在Safari浏览器中且明确支持Apple Pay时才显示按钮
+      // 避免在非Safari浏览器中显示按钮，因为会跳转到普通卡支付
+      if (isSafari && supported) {
+        console.log('Apple Pay is supported in Safari, showing button');
         applePayButton.style.display = 'block';
       } else {
-        // 在非Safari浏览器中，根据Apple官方文档，即使不直接支持，也显示按钮并提供扫描二维码的选项
+        // 在非Safari浏览器或不支持Apple Pay的情况下，隐藏按钮
+        console.log('Apple Pay not fully supported, hiding button');
+        applePayButton.style.display = 'none';
         if (!isSafari) {
-          console.log('Apple Pay in non-Safari browser: will show button for QR code scanning');
-          applePayButton.style.display = 'block';
-          // 修改按钮文本，提示用户需要使用iPhone相机扫描
-          applePayButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
-              <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
-            </svg>
-            使用 iPhone 扫描支付
-          `;
+          console.log('Apple Pay button hidden in non-Safari browser to avoid redirect to card payment');
         } else {
-          console.log('Apple Pay is not supported in Safari, hiding button');
-          applePayButton.style.display = 'none';
           console.log('Apple Pay is not available in Safari. Please check if Apple Pay is set up on your device.');
         }
       }
