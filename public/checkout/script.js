@@ -915,14 +915,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (window.PaymentRequest) {
         // 其他支持 Payment Request API 的浏览器
-        // 注意：Apple Pay 在非 Safari 浏览器中可能需要额外配置
         console.log('Checking Apple Pay support via Payment Request API...');
-        console.log('Note: Apple Pay in non-Safari browsers may require additional configuration');
-        console.log('Possible reasons for non-support:');
-        console.log('1. Browser/OS limitations (Apple Pay typically works best in Safari on macOS/iOS)');
-        console.log('2. Domain verification requirements');
-        console.log('3. Apple Pay not set up on the device');
-        return false; // 暂时返回 false，因为非 Safari 浏览器的 Apple Pay 支持有限
+        try {
+          const paymentMethods = [
+            {
+              supportedMethods: 'https://apple.com/apple-pay',
+              data: {
+                version: 3,
+                merchantIdentifier: 'merchant.evonettestdemo',
+                merchantCapabilities: ['supports3DS'],
+                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+                countryCode: 'HK',
+                currencyCode: 'HKD'
+              }
+            }
+          ];
+          
+          const paymentRequest = new PaymentRequest(paymentMethods, {
+            total: {
+              label: 'Test',
+              amount: {
+                currency: 'HKD',
+                value: '0.01'
+              }
+            }
+          });
+          
+          console.log('Created PaymentRequest object');
+          
+          const canShow = await paymentRequest.canMakePayment();
+          console.log('Apple Pay supported via Payment Request API:', canShow);
+          
+          if (canShow) {
+            console.log('Apple Pay is supported in this non-Safari browser');
+            return true;
+          } else {
+            console.log('Apple Pay not supported in this non-Safari browser');
+            console.log('Possible reasons:');
+            console.log('1. Apple Pay not set up on the device');
+            console.log('2. Browser/OS limitations');
+            console.log('3. Domain verification issues');
+            console.log('4. Merchant identifier configuration issues');
+            return false;
+          }
+        } catch (error) {
+          console.error('Error checking Apple Pay support via Payment Request API:', error);
+          console.log('Error details:', error.message);
+          return false;
+        }
       } else {
         console.log('Apple Pay not supported in this browser');
         return false;
