@@ -1042,6 +1042,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = event.payment.token;
             console.log('Apple Pay token:', token);
             
+            // 输出完整的 event.payment 对象
+            console.log('Full Apple Pay payment event:', event.payment);
+            
             // 构建支付数据 - 直接将 Apple Pay 令牌发送到后端
             const paymentData = {
               merchantTransInfo: {
@@ -1073,6 +1076,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentToken: token
               }
             };
+
+            // 输出完整的 paymentData
+            console.log('Complete paymentData being sent to server:', paymentData);
 
             // 调用后端 API
             const response = await fetch('/payment', {
