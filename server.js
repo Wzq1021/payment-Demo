@@ -16,6 +16,53 @@ try {
 }
 
 const app = express();
+
+// Apple Pay IP地址白名单
+const applePayIpWhitelist = [
+  // 生产环境 IP 地址
+  '17.171.78.7', '17.171.78.71', '17.171.78.135', '17.171.78.199', '17.171.79.12',
+  '17.141.128.7', '17.141.128.71', '17.141.128.135', '17.141.128.199', '17.141.129.12',
+  '17.32.214.7', '17.157.96.181',
+  '17.33.194.239', '17.33.192.38', '17.33.193.110',
+  '17.33.202.35', '17.33.201.101', '17.33.200.169',
+  '101.230.204.232', '101.230.204.242', '101.230.204.240',
+  '60.29.205.104', '60.29.205.106', '60.29.205.108',
+  
+  // 测试环境 IP 地址
+  '17.171.85.7',
+  '17.179.124.181', '17.32.214.56',
+  '17.33.194.218', '17.33.192.145', '17.33.193.45',
+  '17.33.200.47', '17.33.202.99', '17.33.201.105',
+  '101.230.204.235'
+];
+
+// 检查IP地址是否在白名单中
+function isIpAllowed(ip) {
+  return applePayIpWhitelist.includes(ip);
+}
+
+// IP地址白名单中间件
+app.use((req, res, next) => {
+  const clientIp = req.ip || req.connection.remoteAddress;
+  console.log('Client IP:', clientIp);
+  
+  // 检查是否是Apple Pay相关的请求
+  if (req.path.includes('/.well-known/apple-developer-merchantid-domain-association.txt') || 
+      req.headers['user-agent']?.includes('Apple')) {
+    // 检查IP地址是否在白名单中
+    if (isIpAllowed(clientIp)) {
+      console.log('IP allowed for Apple Pay request:', clientIp);
+      next();
+    } else {
+      console.log('IP denied for Apple Pay request:', clientIp);
+      res.status(403).send('Access denied');
+    }
+  } else {
+    // 非Apple Pay请求，直接通过
+    next();
+  }
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/linkpay', express.static(path.join(__dirname, 'public/linkpay')));
