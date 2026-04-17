@@ -986,20 +986,25 @@ document.addEventListener('DOMContentLoaded', () => {
     checkApplePaySupport().then(supported => {
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       
-      // 只有在Safari浏览器中且明确支持Apple Pay时才显示按钮
-      // 避免在非Safari浏览器中显示按钮，因为会跳转到普通卡支付
       if (isSafari && supported) {
         console.log('Apple Pay is supported in Safari, showing button');
         applePayButton.style.display = 'block';
       } else {
-        // 在非Safari浏览器或不支持Apple Pay的情况下，隐藏按钮
-        console.log('Apple Pay not fully supported, hiding button');
-        applePayButton.style.display = 'none';
-        if (!isSafari) {
-          console.log('Apple Pay button hidden in non-Safari browser to avoid redirect to card payment');
+        // 在Safari中但不支持Apple Pay，或非Safari浏览器，显示二维码扫描选项
+        if (isSafari) {
+          console.log('Apple Pay not available in Safari, showing QR code option');
         } else {
-          console.log('Apple Pay is not available in Safari. Please check if Apple Pay is set up on your device.');
+          console.log('Apple Pay button hidden in non-Safari browser');
         }
+        
+        // 修改按钮文本，提示用户可以使用二维码扫描支付
+        applePayButton.style.display = 'block';
+        applePayButton.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
+            <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
+          </svg>
+          使用 iPhone 扫描支付
+        `;
       }
     });
 
@@ -1123,67 +1128,57 @@ document.addEventListener('DOMContentLoaded', () => {
         // 开始 Apple Pay 会话
         session.begin();
       } else {
-        // 非 Safari 浏览器，根据 Apple 官方文档，需要使用 iPhone 相机扫描支付
-        console.log('Non-Safari browser: Using iPhone camera scanning method');
-        
-        // 生成支付信息
-        const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-        const paymentInfo = {
-          merchantTransID: merchantTransID,
-          amount: amount.toFixed(2),
-          currency: 'HKD',
-          merchantName: 'NEXUS PAY',
-          timestamp: new Date().toISOString()
-        };
-        
-        // 生成一个模拟的 Apple Pay 二维码内容
-        // 实际实现中，这应该是一个包含支付信息的 URL
-        const paymentUrl = `${window.location.origin}/payment/apple-pay?${new URLSearchParams(paymentInfo).toString()}`;
-        
-        // 显示扫描提示
-        showToast('请使用 iPhone 相机扫描下方二维码完成 Apple Pay 支付');
-        
-        // 创建并显示二维码
-        const qrCodeContainer = document.createElement('div');
-        qrCodeContainer.style.position = 'fixed';
-        qrCodeContainer.style.top = '50%';
-        qrCodeContainer.style.left = '50%';
-        qrCodeContainer.style.transform = 'translate(-50%, -50%)';
-        qrCodeContainer.style.zIndex = '1000';
-        qrCodeContainer.style.backgroundColor = 'white';
-        qrCodeContainer.style.padding = '20px';
-        qrCodeContainer.style.borderRadius = '10px';
-        qrCodeContainer.style.boxShadow = '0 0 20px rgba(0,0,0,0.3)';
-        qrCodeContainer.style.textAlign = 'center';
-        qrCodeContainer.innerHTML = `
-          <h3 style="margin-top: 0; color: #333;">使用 iPhone 扫描支付</h3>
-          <p style="color: #666; margin-bottom: 20px;">请使用 iPhone 相机扫描下方二维码完成 Apple Pay 支付</p>
-          <div id="qrcode" style="margin: 0 auto;"></div>
-          <p style="color: #666; margin-top: 20px;">支付金额: HKD ${amount.toFixed(2)}</p>
-          <button id="close-qr" style="margin-top: 20px; padding: 10px 20px; background-color: #00f5d4; border: none; border-radius: 5px; cursor: pointer;">关闭</button>
-        `;
-        document.body.appendChild(qrCodeContainer);
-        
-        // 关闭按钮事件
-        document.getElementById('close-qr').addEventListener('click', () => {
-          document.body.removeChild(qrCodeContainer);
-        });
-        
-        // 模拟二维码（实际实现中应该使用真实的二维码生成库）
-        const qrCodeDiv = document.getElementById('qrcode');
-        qrCodeDiv.innerHTML = `
-          <div style="width: 200px; height: 200px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666;">
-            [二维码]
-            <br>扫描此码
-            <br>完成支付
-          </div>
-        `;
-        
-        // 记录日志
-        console.log('Generated payment URL for Apple Pay:', paymentUrl);
-        console.log('According to Apple documentation: On a non-Safari browser, scan the Apple Pay code with your iPhone camera and use your iPhone to complete your purchase');
+        // Safari中Apple Pay不可用，或非Safari浏览器，显示二维码扫描
+        showQRCodeForApplePay(amount);
       }
     });
+    
+    // 显示二维码供iPhone扫描支付
+    function showQRCodeForApplePay(amount) {
+      const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+      
+      showToast('请使用 iPhone 相机扫描下方二维码完成 Apple Pay 支付');
+      
+      // 创建并显示二维码容器
+      const qrCodeContainer = document.createElement('div');
+      qrCodeContainer.id = 'qr-code-overlay';
+      qrCodeContainer.style.position = 'fixed';
+      qrCodeContainer.style.top = '0';
+      qrCodeContainer.style.left = '0';
+      qrCodeContainer.style.width = '100%';
+      qrCodeContainer.style.height = '100%';
+      qrCodeContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      qrCodeContainer.style.zIndex = '10000';
+      qrCodeContainer.style.display = 'flex';
+      qrCodeContainer.style.flexDirection = 'column';
+      qrCodeContainer.style.alignItems = 'center';
+      qrCodeContainer.style.justifyContent = 'center';
+      qrCodeContainer.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 350px;">
+          <h3 style="margin: 0 0 15px 0; color: #333; font-size: 20px;">使用 iPhone 扫描支付</h3>
+          <p style="color: #666; margin-bottom: 20px; font-size: 14px;">打开 iPhone 相机扫描下方二维码</p>
+          <div id="qrcode" style="margin: 0 auto 20px;"></div>
+          <p style="color: #333; font-size: 18px; font-weight: bold;">支付金额: HKD ${amount.toFixed(2)}</p>
+          <p style="color: #999; font-size: 12px; margin-top: 10px;">订单号: ${merchantTransID}</p>
+        </div>
+        <button id="close-qr-overlay" style="margin-top: 30px; padding: 12px 30px; background-color: #666; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px;">关闭</button>
+      `;
+      document.body.appendChild(qrCodeContainer);
+      
+      // 关闭按钮事件
+      document.getElementById('close-qr-overlay').addEventListener('click', () => {
+        document.body.removeChild(qrCodeContainer);
+      });
+      
+      // 生成支付信息URL用于二维码
+      const paymentInfoUrl = `${window.location.origin}/checkout/index.html?apple_pay=1&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=ApplePayScan`;
+      
+      // 使用简单的QR码生成（实际项目中建议使用 qrcode.js 库）
+      const qrcodeDiv = document.getElementById('qrcode');
+      qrcodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(paymentInfoUrl)}" alt="QR Code" style="width: 200px; height: 200px;">`;
+      
+      console.log('Generated QR code for payment:', paymentInfoUrl);
+    }
   }
 
   // Direct API 支付表单提交
