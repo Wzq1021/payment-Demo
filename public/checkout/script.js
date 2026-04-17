@@ -1009,7 +1009,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Apple Pay 按钮点击事件
-    applePayButton.addEventListener('click', async () => {
+    applePayButton.addEventListener('click', async (event) => {
+      // 阻止事件冒泡，防止触发表单提交
+      event.stopPropagation();
+      // 阻止默认行为
+      event.preventDefault();
+      
       console.log('Apple Pay button clicked');
       const currentTotal = calculateTotal();
       const amount = customAmount > 0 ? customAmount : currentTotal;
