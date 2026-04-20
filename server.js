@@ -75,13 +75,45 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
+// Environment Configuration
+const ENV = process.env.NODE_ENV || 'development';
+
+// Test Environment Configuration
+const testConfig = {
+  linkPay: {
+    key: 'd5e2c210d2114b1993ee68244ed88fce',
+    baseUrl: 'https://hkg-counter-uat.everonet.com'
+  },
+  dropin: {
+    signKey: 'd5e2c210d2114b1993ee68244ed88fce',
+    keyID: '630805e2d532478aba9cedb9cea14397',
+    baseUrl: 'https://sandbox.evonetonline.com'
+  }
+};
+
+// Production Environment Configuration
+const prodConfig = {
+  linkPay: {
+    key: '38f82acee90f4c94b5437d8bf03474c7',
+    baseUrl: 'https://api.evonetonline.com'
+  },
+  dropin: {
+    signKey: '38f82acee90f4c94b5437d8bf03474c7',
+    keyID: 'cbaad717bfd24733aa1866bea83f6b81',
+    baseUrl: 'https://api.evonetonline.com'
+  }
+};
+
+// Current Configuration
+const config = ENV === 'production' ? prodConfig : testConfig;
+
 // LinkPay Configuration
-const keyLinkPay = 'd5e2c210d2114b1993ee68244ed88fce';
+const keyLinkPay = config.linkPay.key;
 const WEBHOOK_LINKPAY_URL = 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io';
 
 // Dropin Configuration
-const signKeyDropin = 'd5e2c210d2114b1993ee68244ed88fce';
-const keyID = '630805e2d532478aba9cedb9cea14397';
+const signKeyDropin = config.dropin.signKey;
+const keyID = config.dropin.keyID;
 
 // Token Storage - 支持 Vercel KV 和本地文件系统
 const TOKEN_FILE = path.join(__dirname, 'tokens.json');
@@ -240,7 +272,7 @@ app.post('/linkpay/create-payment', async (req, res) => {
     console.log('Request Headers:', headers);
 
     const response = await axios.post(
-      'https://hkg-counter-uat.everonet.com' + urlPath,
+      config.linkPay.baseUrl + urlPath,
       bodyString,
       { headers }
     );
@@ -306,7 +338,7 @@ app.get('/linkpay/check-payment/:orderId', async (req, res) => {
     console.log('String to Sign:', stringToSign);
     console.log('Generated Signature:', signature);
 
-    const url = 'https://hkg-counter-uat.everonet.com' + urlPath;
+    const url = config.linkPay.baseUrl + urlPath;
 
     const headers = {
       'Accept': 'application/json',
@@ -513,7 +545,7 @@ app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
 
   try {
     const response = await axios.post(
-      'https://hkg-counter-uat.everonet.com' + urlPath,
+      config.linkPay.baseUrl + urlPath,
       refundBody,
       { headers }
     );
@@ -564,7 +596,7 @@ app.get('/linkpay/refund-result/:transId', async (req, res) => {
 
   try {
     const response = await axios.get(
-      'https://hkg-counter-uat.everonet.com' + urlPath,
+      config.linkPay.baseUrl + urlPath,
       { headers }
     );
 
@@ -631,7 +663,7 @@ app.post('/dropin/create-payment', async (req, res) => {
     console.log('===============\n');
 
     const response = await axios.post(
-      'https://sandbox.evonetonline.com' + urlPath,
+      config.dropin.baseUrl + urlPath,
       bodyString,
       {
         headers: {
@@ -697,7 +729,7 @@ app.get('/dropin/query-payment/:merchantOrderID', async (req, res) => {
     console.log('===============\n');
 
     const response = await axios.get(
-      'https://sandbox.evonetonline.com' + urlPath,
+      config.dropin.baseUrl + urlPath,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -828,7 +860,7 @@ app.post('/dropin/create-subscription', async (req, res) => {
     console.log('===============\n');
 
     const response = await axios.post(
-      'https://sandbox.evonetonline.com' + urlPath,
+      config.dropin.baseUrl + urlPath,
       bodyString,
       {
         headers: {
@@ -1058,7 +1090,7 @@ app.post('/payment', async (req, res) => {
     console.log('Request Headers:', JSON.stringify(headers, null, 2));
     
     const response = await axios.post(
-      'https://sandbox.evonetonline.com/payment',
+      config.dropin.baseUrl + '/payment',
       paymentData,
       { headers }
     );
@@ -1157,7 +1189,7 @@ app.post('/subscription/mit-payment', async (req, res) => {
     console.log('Request Headers:', JSON.stringify(headers, null, 2));
     
     const response = await axios.post(
-      'https://sandbox.evonetonline.com/payment',
+      config.dropin.baseUrl + '/payment',
       body,
       { headers }
     );
