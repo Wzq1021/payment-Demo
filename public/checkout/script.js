@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 merchantCapabilities: ['supports3DS'],
                 supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
                 countryCode: 'HK',
-                currencyCode: 'SGD'
+                currencyCode: 'HKD'
               }
             }
           ];
@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             total: {
               label: 'Test',
               amount: {
-                currency: 'SGD',
+                currency: 'HKD',
                 value: '0.01'
               }
             }
@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 merchantTransTime: merchantTransTime
               },
               transAmount: {
-                currency: 'SGD',
+                currency: 'HKD',
                 value: amount.toFixed(2)
               },
               paymentMethod: {
@@ -1263,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         merchantTransTime: merchantTransTime
       },
       transAmount: {
-        currency: 'SGD',
+        currency: 'HKD',
         value: amount.toFixed(2)
       },
       paymentMethod: {
