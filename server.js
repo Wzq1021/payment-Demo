@@ -82,7 +82,8 @@ let currentEnv = process.env.NODE_ENV || 'development';
 const testConfig = {
   linkPay: {
     key: 'd5e2c210d2114b1993ee68244ed88fce',
-    baseUrl: 'https://hkg-counter-uat.everonet.com'
+    baseUrl: 'https://hkg-counter-uat.everonet.com',
+    merchantId: 'S005188'
   },
   dropin: {
     signKey: 'd5e2c210d2114b1993ee68244ed88fce',
@@ -95,7 +96,8 @@ const testConfig = {
 const prodConfig = {
   linkPay: {
     key: '38f82acee90f4c94b5437d8bf03474c7',
-    baseUrl: 'https://api.evonetonline.com'
+    baseUrl: 'https://api.evonetonline.com',
+    merchantId: 'S045835581500001'
   },
   dropin: {
     signKey: '38f82acee90f4c94b5437d8bf03474c7',
@@ -124,6 +126,11 @@ const WEBHOOK_LINKPAY_URL = 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.p
 // Get LinkPay key dynamically
 function getKeyLinkPay() {
   return getConfig().linkPay.key;
+}
+
+// Get LinkPay merchant ID dynamically
+function getMerchantId() {
+  return getConfig().linkPay.merchantId;
 }
 
 // Get Dropin sign key dynamically
@@ -232,7 +239,7 @@ app.post('/linkpay/create-payment', async (req, res) => {
     const paymentAmount = amount || 100.00;
 
     const method = 'POST';
-    const urlPath = '/g2/v0/payment/mer/S005188/evo.e-commerce.linkpay';
+    const urlPath = `/g2/v0/payment/mer/${getMerchantId()}/evo.e-commerce.linkpay`;
     const dateTime = getDateTimeString();
     const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     const traceId = crypto.randomUUID().replace(/-/g, '');
@@ -351,7 +358,7 @@ app.get('/linkpay/check-payment/:orderId', async (req, res) => {
     const dateTime = getDateTimeString();
     const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     const traceId = crypto.randomUUID().replace(/-/g, '');
-    const urlPath = `/g2/v0/payment/mer/S005188/evo.e-commerce.linkpay/${orderId}`;
+    const urlPath = `/g2/v0/payment/mer/${getMerchantId()}/evo.e-commerce.linkpay/${orderId}`;
 
     const stringToSign = ['GET', urlPath, dateTime, getKeyLinkPay(), msgID].join('\n');
     const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
@@ -537,7 +544,7 @@ app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
   const dateTime = getDateTimeString();
   const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
   const traceId = crypto.randomUUID().replace(/-/g, '');
-  const urlPath = `/g2/v0/payment/mer/S005188/evo.e-commerce.linkpayRefund/${orderId}`;
+  const urlPath = `/g2/v0/payment/mer/${getMerchantId()}/evo.e-commerce.linkpayRefund/${orderId}`;
 
   const refundBody = {
     merchantTransInfo: {
