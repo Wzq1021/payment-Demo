@@ -717,8 +717,11 @@ app.post('/dropin/create-payment', async (req, res) => {
     console.log(bodyString);
     console.log('===============\n');
 
+    let dropinBaseUrl = getConfig().dropin.baseUrl;
+    let dropinPath = getConfig().dropin.path || '/interaction';
+    
     const response = await axios.post(
-      getConfig().dropin.baseUrl + urlPath,
+      dropinBaseUrl + dropinPath,
       bodyString,
       {
         headers: {
@@ -736,9 +739,18 @@ app.post('/dropin/create-payment', async (req, res) => {
     console.log('Result:', response.data);
 
     if (response.data?.result?.code === 'S0000' && response.data?.linkUrl) {
+      let paymentLink = response.data.linkUrl;
+      // 如果是生产环境，确保支付链接使用正确的域名
+      if (currentEnv === 'production') {
+        // 替换测试环境域名为生产环境域名
+        paymentLink = paymentLink.replace('hkg-counter.everonet.com', 'api.evonetonline.com');
+        paymentLink = paymentLink.replace('counter-uat.everonet.com', 'api.evonetonline.com');
+        paymentLink = paymentLink.replace('hkg-counter-uat.everonet.com', 'api.evonetonline.com');
+      }
+      console.log('Modified paymentLink:', paymentLink);
       return res.json({
         message: '创建支付链接成功',
-        paymentLink: response.data.linkUrl,
+        paymentLink: paymentLink,
         orderId: response.data.merchantOrderInfo?.merchantOrderID,
         expires: response.data.expiryTime
       });

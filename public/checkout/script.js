@@ -571,7 +571,7 @@ async function processDropinPayment() {
       const sessionID = data.paymentLink.split('/').pop();
       currentOrderId = data.orderId;
       currentAmount = total;
-      initDropInSDK(sessionID);
+      await initDropInSDK(sessionID);
     } else {
       throw new Error(data.error || t('payment_failed'));
     }
@@ -583,7 +583,7 @@ async function processDropinPayment() {
   }
 }
 
-function initDropInSDK(sessionID) {
+async function initDropInSDK(sessionID) {
   const dropInApp = document.getElementById('dropInApp');
 
   if (typeof window.DropInSDK === 'undefined') {
@@ -594,6 +594,10 @@ function initDropInSDK(sessionID) {
   }
 
   try {
+    // 获取当前环境
+    const currentEnv = await getCurrentEnvironment();
+    console.log('Current environment:', currentEnv);
+    
     dropInApp.innerHTML = '';
     dropInApp.style.background = '#ffffff';
     dropInApp.style.borderRadius = '12px';
@@ -606,7 +610,7 @@ function initDropInSDK(sessionID) {
       sessionID: sessionID,
       locale: currentLang === 'zh' ? 'zh-CN' : 'en-US',
       mode: 'embedded',
-      environment: 'UAT',
+      environment: currentEnv === 'production' ? 'HKG_prod' : 'UAT',
       appearance: { 
         colorBackground: '#ffffff',
         colorPrimary: '#00f5d4',
