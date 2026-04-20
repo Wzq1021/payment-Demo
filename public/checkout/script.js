@@ -680,7 +680,47 @@ function showPaymentSuccess(orderId, amount, method, shouldCheckToken = true) {
   saveCart();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Environment management functions
+async function getCurrentEnvironment() {
+  try {
+    const response = await fetch('/api/environment');
+    const data = await response.json();
+    return data.currentEnv;
+  } catch (error) {
+    console.error('Error getting environment:', error);
+    return 'development';
+  }
+}
+
+async function setEnvironment(env) {
+  try {
+    const response = await fetch('/api/environment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ env })
+    });
+    const data = await response.json();
+    if (data.success) {
+      showToast(`环境已切换到: ${env === 'development' ? '测试环境' : '生产环境'}`);
+      return true;
+    } else {
+      showToast('环境切换失败: ' + data.message);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error setting environment:', error);
+    showToast('环境切换失败: ' + error.message);
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Get current environment
+  const currentEnv = await getCurrentEnvironment();
+  document.getElementById('environment-switch').value = currentEnv;
+  
   const savedLang = localStorage.getItem('language') || 'zh';
   currentLang = savedLang;
   document.getElementById('language-switch').value = savedLang;
@@ -734,6 +774,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('language-switch').addEventListener('change', (e) => {
     updateLanguage(e.target.value);
+  });
+
+  // Environment switch event listener
+  document.getElementById('environment-switch').addEventListener('change', async (e) => {
+    await setEnvironment(e.target.value);
   });
 
   document.getElementById('apply-custom-amount').addEventListener('click', () => {

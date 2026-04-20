@@ -76,7 +76,7 @@ app.get('/', (req, res) => {
 });
 
 // Environment Configuration
-const ENV = process.env.NODE_ENV || 'development';
+let currentEnv = process.env.NODE_ENV || 'development';
 
 // Test Environment Configuration
 const testConfig = {
@@ -104,16 +104,37 @@ const prodConfig = {
   }
 };
 
-// Current Configuration
-const config = ENV === 'production' ? prodConfig : testConfig;
+// Get current configuration
+function getConfig() {
+  return currentEnv === 'production' ? prodConfig : testConfig;
+}
+
+// Set environment
+function setEnv(env) {
+  if (env === 'production' || env === 'development') {
+    currentEnv = env;
+    return true;
+  }
+  return false;
+}
 
 // LinkPay Configuration
-const keyLinkPay = config.linkPay.key;
 const WEBHOOK_LINKPAY_URL = 'https://6ee8218a-52e4-4b16-8d67-594cdb34bb23.mock.pstmn.io';
 
-// Dropin Configuration
-const signKeyDropin = config.dropin.signKey;
-const keyID = config.dropin.keyID;
+// Get LinkPay key dynamically
+function getKeyLinkPay() {
+  return getConfig().linkPay.key;
+}
+
+// Get Dropin sign key dynamically
+function getSignKeyDropin() {
+  return getConfig().dropin.signKey;
+}
+
+// Get Dropin key ID dynamically
+function getKeyID() {
+  return getConfig().dropin.keyID;
+}
 
 // Token Storage - 支持 Vercel KV 和本地文件系统
 const TOKEN_FILE = path.join(__dirname, 'tokens.json');
@@ -253,7 +274,7 @@ app.post('/linkpay/create-payment', async (req, res) => {
     }
 
     const bodyString = JSON.stringify(body);
-    const stringToSign = [method, urlPath, dateTime, keyLinkPay, msgID, bodyString].join('\n');
+    const stringToSign = [method, urlPath, dateTime, getKeyLinkPay(), msgID, bodyString].join('\n');
     const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
     console.log('String to Sign:', stringToSign);
@@ -272,7 +293,7 @@ app.post('/linkpay/create-payment', async (req, res) => {
     console.log('Request Headers:', headers);
 
     const response = await axios.post(
-      config.linkPay.baseUrl + urlPath,
+      getConfig().linkPay.baseUrl + urlPath,
       bodyString,
       { headers }
     );
@@ -332,13 +353,13 @@ app.get('/linkpay/check-payment/:orderId', async (req, res) => {
     const traceId = crypto.randomUUID().replace(/-/g, '');
     const urlPath = `/g2/v0/payment/mer/S005188/evo.e-commerce.linkpay/${orderId}`;
 
-    const stringToSign = ['GET', urlPath, dateTime, keyLinkPay, msgID].join('\n');
+    const stringToSign = ['GET', urlPath, dateTime, getKeyLinkPay(), msgID].join('\n');
     const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
     console.log('String to Sign:', stringToSign);
     console.log('Generated Signature:', signature);
 
-    const url = config.linkPay.baseUrl + urlPath;
+    const url = getConfig().linkPay.baseUrl + urlPath;
 
     const headers = {
       'Accept': 'application/json',
@@ -530,7 +551,7 @@ app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
     webhook: WEBHOOK_LINKPAY_URL
   };
 
-  const stringToSign = ['POST', urlPath, dateTime, keyLinkPay, msgID, JSON.stringify(refundBody)].join('\n');
+  const stringToSign = ['POST', urlPath, dateTime, getKeyLinkPay(), msgID, JSON.stringify(refundBody)].join('\n');
   const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
   const headers = {
@@ -545,7 +566,7 @@ app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
 
   try {
     const response = await axios.post(
-      config.linkPay.baseUrl + urlPath,
+      getConfig().linkPay.baseUrl + urlPath,
       refundBody,
       { headers }
     );
@@ -581,7 +602,7 @@ app.get('/linkpay/refund-result/:transId', async (req, res) => {
   const traceId = crypto.randomUUID().replace(/-/g, '');
   const urlPath = `/goba/v2/payment/merchants/S005780672/evo.e-commerce/refunded/${transId}`;
 
-  const stringToSign = ['GET', urlPath, dateTime, keyLinkPay, msgID].join('\n');
+  const stringToSign = ['GET', urlPath, dateTime, getKeyLinkPay(), msgID].join('\n');
   const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
   const headers = {
@@ -596,7 +617,7 @@ app.get('/linkpay/refund-result/:transId', async (req, res) => {
 
   try {
     const response = await axios.get(
-      config.linkPay.baseUrl + urlPath,
+      getConfig().linkPay.baseUrl + urlPath,
       { headers }
     );
 
@@ -658,21 +679,21 @@ app.post('/dropin/create-payment', async (req, res) => {
     console.log(method);
     console.log(urlPath);
     console.log(dateTime);
-    console.log(signKeyDropin);
+    console.log(getSignKeyDropin());
     console.log(bodyString);
     console.log('===============\n');
 
     const response = await axios.post(
-      config.dropin.baseUrl + urlPath,
+      getConfig().dropin.baseUrl + urlPath,
       bodyString,
       {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': signKeyDropin,
+          'Authorization': getSignKeyDropin(),
           'DateTime': dateTime,
           'SignType': 'Key-based',
-          'KeyID': keyID,
+          'KeyID': getKeyID(),
           'X-Trace-Id': traceId
         }
       }
@@ -725,19 +746,19 @@ app.get('/dropin/query-payment/:merchantOrderID', async (req, res) => {
     console.log(method);
     console.log(urlPath);
     console.log(dateTime);
-    console.log(signKeyDropin);
+    console.log(getSignKeyDropin());
     console.log('===============\n');
 
     const response = await axios.get(
-      config.dropin.baseUrl + urlPath,
+      getConfig().dropin.baseUrl + urlPath,
       {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': signKeyDropin,
+          'Authorization': getSignKeyDropin(),
           'DateTime': dateTime,
           'SignType': 'Key-based',
-          'KeyID': keyID,
+          'KeyID': getKeyID(),
           'X-Trace-Id': traceId
         }
       }
@@ -855,21 +876,21 @@ app.post('/dropin/create-subscription', async (req, res) => {
     console.log(method);
     console.log(urlPath);
     console.log(dateTime);
-    console.log(signKeyDropin);
+    console.log(getSignKeyDropin());
     console.log(bodyString);
     console.log('===============\n');
 
     const response = await axios.post(
-      config.dropin.baseUrl + urlPath,
+      getConfig().dropin.baseUrl + urlPath,
       bodyString,
       {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': signKeyDropin,
+          'Authorization': getSignKeyDropin(),
           'DateTime': dateTime,
           'SignType': 'Key-based',
-          'KeyID': keyID,
+          'KeyID': getKeyID(),
           'X-Trace-Id': traceId
         }
       }
@@ -1079,9 +1100,9 @@ app.post('/payment', async (req, res) => {
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': signKeyDropin,
+      'Authorization': getSignKeyDropin(),
       'DateTime': dateTime,
-      'KeyID': keyID,
+      'KeyID': getKeyID(),
       'SignType': 'Key-based',
       'Idempotency-Key': idempotencyKey,
       'X-Trace-Id': traceId
@@ -1090,7 +1111,7 @@ app.post('/payment', async (req, res) => {
     console.log('Request Headers:', JSON.stringify(headers, null, 2));
     
     const response = await axios.post(
-      config.dropin.baseUrl + '/payment',
+      getConfig().dropin.baseUrl + '/payment',
       paymentData,
       { headers }
     );
@@ -1177,9 +1198,9 @@ app.post('/subscription/mit-payment', async (req, res) => {
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': signKeyDropin,
+      'Authorization': getSignKeyDropin(),
       'DateTime': dateTime,
-      'KeyID': keyID,
+      'KeyID': getKeyID(),
       'SignType': 'Key-based',
       'Idempotency-Key': merchantTransID,
       'X-Trace-Id': traceId
@@ -1189,7 +1210,7 @@ app.post('/subscription/mit-payment', async (req, res) => {
     console.log('Request Headers:', JSON.stringify(headers, null, 2));
     
     const response = await axios.post(
-      config.dropin.baseUrl + '/payment',
+      getConfig().dropin.baseUrl + '/payment',
       body,
       { headers }
     );
@@ -1239,6 +1260,31 @@ app.get('/subscription/tokens/:userReference', async (req, res) => {
     success: false,
     message: '未找到保存的 token，请先完成首次订阅支付'
   });
+});
+
+// Get current environment
+app.get('/api/environment', (req, res) => {
+  res.json({
+    currentEnv: currentEnv,
+    availableEnvs: ['development', 'production']
+  });
+});
+
+// Set environment
+app.post('/api/environment', (req, res) => {
+  const { env } = req.body;
+  if (setEnv(env)) {
+    console.log('Environment changed to:', env);
+    res.json({
+      success: true,
+      currentEnv: currentEnv
+    });
+  } else {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid environment. Must be "development" or "production"'
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
