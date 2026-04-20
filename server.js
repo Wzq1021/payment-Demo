@@ -83,12 +83,14 @@ const testConfig = {
   linkPay: {
     key: 'd5e2c210d2114b1993ee68244ed88fce',
     baseUrl: 'https://hkg-counter-uat.everonet.com',
-    merchantId: 'S005188'
+    merchantId: 'S005188',
+    path: '/g2/v0/payment/mer/{merchantId}/evo.e-commerce.linkpay'
   },
   dropin: {
     signKey: 'd5e2c210d2114b1993ee68244ed88fce',
     keyID: '630805e2d532478aba9cedb9cea14397',
-    baseUrl: 'https://sandbox.evonetonline.com'
+    baseUrl: 'https://sandbox.evonetonline.com',
+    path: '/interaction'
   }
 };
 
@@ -97,12 +99,14 @@ const prodConfig = {
   linkPay: {
     key: '38f82acee90f4c94b5437d8bf03474c7',
     baseUrl: 'https://api.evonetonline.com',
-    merchantId: 'S045835581500001'
+    merchantId: '045835581500001',
+    path: '/interaction'
   },
   dropin: {
     signKey: '38f82acee90f4c94b5437d8bf03474c7',
     keyID: 'cbaad717bfd24733aa1866bea83f6b81',
-    baseUrl: 'https://api.evonetonline.com'
+    baseUrl: 'https://api.evonetonline.com',
+    path: '/interaction'
   }
 };
 
@@ -239,7 +243,11 @@ app.post('/linkpay/create-payment', async (req, res) => {
     const paymentAmount = amount || 100.00;
 
     const method = 'POST';
-    const urlPath = `/g2/v0/payment/mer/${getMerchantId()}/evo.e-commerce.linkpay`;
+    let urlPath = getConfig().linkPay.path;
+    // Replace {merchantId} placeholder if it exists
+    if (urlPath.includes('{merchantId}')) {
+      urlPath = urlPath.replace('{merchantId}', getMerchantId());
+    }
     const dateTime = getDateTimeString();
     const msgID = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     const traceId = crypto.randomUUID().replace(/-/g, '');
@@ -280,22 +288,41 @@ app.post('/linkpay/create-payment', async (req, res) => {
       };
     }
 
-    const bodyString = JSON.stringify(body);
-    const stringToSign = [method, urlPath, dateTime, getKeyLinkPay(), msgID, bodyString].join('\n');
-    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const bodyString = JSON.stringify(body, null, 0);
 
-    console.log('String to Sign:', stringToSign);
-    console.log('Generated Signature:', signature);
+    console.log('Body String:', bodyString);
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': signature,
-      'DateTime': dateTime,
-      'MsgID': msgID,
-      'SignType': 'SHA256',
-      'X-Trace-Id': traceId
-    };
+    // 根据环境使用不同的签名方式
+    let headers;
+    if (currentEnv === 'production') {
+      // 生产环境使用 Dropin 风格的签名方式
+      headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': getKeyLinkPay(),
+        'DateTime': dateTime,
+        'SignType': 'Key-based',
+        'KeyID': getKeyID(),
+        'X-Trace-Id': traceId
+      };
+    } else {
+      // 测试环境使用 LinkPay 风格的签名方式
+      const stringToSign = [method, urlPath, dateTime, getKeyLinkPay(), msgID, bodyString].join('\n');
+      const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+      console.log('String to Sign:', stringToSign);
+      console.log('Generated Signature:', signature);
+
+      headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': signature,
+        'DateTime': dateTime,
+        'MsgID': msgID,
+        'SignType': 'SHA256',
+        'X-Trace-Id': traceId
+      };
+    }
 
     console.log('Request Headers:', headers);
 
