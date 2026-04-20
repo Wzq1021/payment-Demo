@@ -260,7 +260,7 @@ app.post('/linkpay/create-payment', async (req, res) => {
         merchantOrderTime: dateTime
       },
       transAmount: {
-        currency: 'HKD',
+        currency: 'SGD',
         value: String(paymentAmount)
       },
       tradeInfo: {
@@ -579,7 +579,7 @@ app.post('/linkpay/refund-payment/:orderId', async (req, res) => {
       merchantTransTime: dateTime
     },
     transAmount: {
-      currency: 'HKD',
+      currency: 'SGD',
       value: String(amount)
     },
     webhook: WEBHOOK_LINKPAY_URL
@@ -690,7 +690,7 @@ app.post('/dropin/create-payment', async (req, res) => {
         merchantOrderTime: dateTime
       },
       transAmount: {
-        currency: 'HKD',
+        currency: 'SGD',
         value: String(amount)
       },
       userInfo: {
@@ -902,7 +902,7 @@ app.post('/dropin/create-subscription', async (req, res) => {
         merchantTransTime: dateTime
       },
       transAmount: {
-        currency: 'HKD',
+        currency: 'SGD',
         value: String(amount)
       },
       paymentMethod: {
@@ -1227,7 +1227,7 @@ app.post('/subscription/mit-payment', async (req, res) => {
         merchantTransTime: dateTime
       },
       transAmount: {
-        currency: 'HKD',
+        currency: 'SGD',
         value: String(amount)
       },
       paymentMethod: {

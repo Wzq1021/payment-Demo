@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 merchantCapabilities: ['supports3DS'],
                 supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
                 countryCode: 'HK',
-                currencyCode: 'HKD'
+                currencyCode: 'SGD'
               }
             }
           ];
@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             total: {
               label: 'Test',
               amount: {
-                currency: 'HKD',
+                currency: 'SGD',
                 value: '0.01'
               }
             }
@@ -1088,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 创建 Apple Pay 会话
         const session = new ApplePaySession(3, {
           countryCode: 'HK',
-          currencyCode: 'HKD',
+          currencyCode: 'SGD',
           supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
           merchantCapabilities: ['supports3DS'],
           total: {
@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 merchantTransTime: merchantTransTime
               },
               transAmount: {
-                currency: 'HKD',
+                currency: 'SGD',
                 value: amount.toFixed(2)
               },
               paymentMethod: {
@@ -1263,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         merchantTransTime: merchantTransTime
       },
       transAmount: {
-        currency: 'HKD',
+        currency: 'SGD',
         value: amount.toFixed(2)
       },
       paymentMethod: {
