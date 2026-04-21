@@ -66,6 +66,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/.well-known', express.static(path.join(__dirname, 'public/.well-known')));
 app.use('/linkpay', express.static(path.join(__dirname, 'public/linkpay')));
 app.use('/dropin', express.static(path.join(__dirname, 'public/dropin')));
 app.use('/checkout', express.static(path.join(__dirname, 'public/checkout')));
