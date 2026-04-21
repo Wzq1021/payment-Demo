@@ -1253,7 +1253,7 @@ app.post('/payment', async (req, res) => {
     console.log('Request Headers:', JSON.stringify(headers, null, 2));
     
     const response = await axios.post(
-      getConfig().dropin.baseUrl + '/payment',
+      getConfig().dropin.baseUrl + (currentEnv === 'production' ? '/payment' : '/interaction'),
       paymentData,
       { headers }
     );
