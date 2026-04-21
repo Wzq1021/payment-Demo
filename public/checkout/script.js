@@ -1088,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 创建 Apple Pay 会话
         const session = new ApplePaySession(3, {
           countryCode: 'HK',
-          currencyCode: 'SGD',
+          currencyCode: 'HKD',
           supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
           merchantCapabilities: ['supports3DS'],
           total: {
