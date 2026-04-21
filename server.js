@@ -1046,7 +1046,7 @@ app.post('/payment', async (req, res) => {
         const fs = require('fs');
         const path = require('path');
         const certPath = path.join(__dirname, 'apple_pay.cer');
-        const keyPath = path.join(__dirname, 'apple_pay.key');
+        const keyPath = path.join(__dirname, 'ApplePay.key.pem');
         
         console.log('Apple Pay certificate path:', certPath);
         console.log('Apple Pay private key path:', keyPath);
