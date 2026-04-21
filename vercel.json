@@ -4,6 +4,10 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/.well-known/(.*)",
+      "use": "@vercel/static"
     }
   ],
   "routes": [

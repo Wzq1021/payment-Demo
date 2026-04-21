@@ -720,6 +720,53 @@ async function setEnvironment(env) {
   }
 }
 
+// Apple Pay merchant session cache
+let applePayMerchantSession = null;
+let sessionExpiryTime = 0;
+
+// Get Apple Pay merchant session
+async function getApplePayMerchantSession() {
+  // Check if we have a valid cached session
+  const now = Date.now();
+  if (applePayMerchantSession && now < sessionExpiryTime) {
+    console.log('Using cached Apple Pay merchant session');
+    return applePayMerchantSession;
+  }
+  
+  try {
+    console.log('Getting new Apple Pay merchant session...');
+    const sessionResponse = await fetch('/api/apple-pay/session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        merchantIdentifier: 'merchant.evonettestdemo',
+        displayName: 'NEXUS PAY',
+        initiative: 'web',
+        initiativeContext: window.location.hostname
+      })
+    });
+    
+    if (!sessionResponse.ok) {
+      throw new Error('Failed to get Apple Pay session');
+    }
+    
+    const sessionData = await sessionResponse.json();
+    console.log('Apple Pay session data:', sessionData);
+    
+    // Cache the session
+    applePayMerchantSession = sessionData;
+    // Set expiry time (session expires after 30 minutes)
+    sessionExpiryTime = now + (30 * 60 * 1000);
+    
+    return sessionData;
+  } catch (error) {
+    console.error('Error getting Apple Pay session:', error);
+    throw error;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Get current environment
   const currentEnv = await getCurrentEnvironment();
@@ -731,6 +778,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateLanguage(savedLang);
   renderCart();
   showStep(1);
+  
+  // Pre-fetch Apple Pay merchant session for faster checkout
+  try {
+    await getApplePayMerchantSession();
+  } catch (error) {
+    console.log('Failed to pre-fetch Apple Pay session:', error);
+    // Continue loading the page even if session fetch fails
+  }
 
   const urlParams = new URLSearchParams(window.location.search);
   const paymentStatus = urlParams.get('payment');
@@ -1096,30 +1151,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 使用 Apple Pay JS API (Safari)
         console.log('Using Apple Pay JS API');
         
-        // 先获取 Apple Pay 商户会话
         try {
-          console.log('Getting Apple Pay merchant session...');
-          const sessionResponse = await fetch('/api/apple-pay/session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              merchantIdentifier: 'merchant.evonettestdemo',
-              displayName: 'NEXUS PAY',
-              initiative: 'web',
-              initiativeContext: window.location.hostname
-            })
-          });
-          
-          if (!sessionResponse.ok) {
-            throw new Error('Failed to get Apple Pay session');
+          // 直接使用缓存的会话，避免在用户手势处理程序中进行异步操作
+          if (!applePayMerchantSession) {
+            throw new Error('No Apple Pay merchant session available');
           }
           
-          const sessionData = await sessionResponse.json();
-          console.log('Apple Pay session data:', sessionData);
-          
-          // 创建 Apple Pay 会话
+          // 创建 Apple Pay 会话 - 确保在用户手势处理程序中直接创建
           const session = new ApplePaySession(3, {
             countryCode: 'HK',
             currencyCode: 'HKD',
@@ -1130,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               amount: amount.toFixed(2)
             },
             requiredBillingContactFields: ['email'],
-            merchantSession: sessionData
+            merchantSession: applePayMerchantSession
           });
 
           // 处理支付处理
