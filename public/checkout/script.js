@@ -957,18 +957,28 @@ document.addEventListener('DOMContentLoaded', async () => {
           const merchantIdentifier = 'merchant.evonettestdemo';
           console.log('Checking Apple Pay with merchant ID:', merchantIdentifier);
           
-          const canMakePayments = await ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
-          console.log('Apple Pay supported in Safari:', canMakePayments);
+          // 首先检查设备是否支持 Apple Pay
+          const canMakePayments = ApplePaySession.canMakePayments();
+          console.log('Device supports Apple Pay:', canMakePayments);
           
           if (!canMakePayments) {
+            console.log('Apple Pay is not available on this device.');
+            return false;
+          }
+          
+          // 然后检查是否有激活的卡片和正确的商户ID
+          const canMakePaymentsWithActiveCard = await ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
+          console.log('Apple Pay supported with active card and merchant ID:', canMakePaymentsWithActiveCard);
+          
+          if (!canMakePaymentsWithActiveCard) {
             console.log('Apple Pay is not available. Possible reasons:');
             console.log('1. Merchant ID "merchant.evonettestdemo" is not properly configured in Apple Developer account');
             console.log('2. Domain verification failed - ensure apple-developer-merchantid-domain-association.txt is accessible at:', window.location.origin + '/.well-known/');
-            console.log('3. Apple Pay is not set up on this device');
+            console.log('3. Apple Pay is not set up on this device or no active cards');
             console.log('4. The merchant ID does not match the one registered in Apple Developer');
           }
           
-          return canMakePayments;
+          return canMakePaymentsWithActiveCard;
         } catch (error) {
           console.error('Error checking Apple Pay in Safari:', error);
           console.error('Error name:', error.name);
