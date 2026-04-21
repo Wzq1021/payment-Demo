@@ -1066,12 +1066,12 @@ app.post('/payment', async (req, res) => {
           try {
             // 实际实现 Apple Pay 令牌解密
             // 1. 从 Apple Pay 令牌的 paymentData.header 中提取 ephemeralPublicKey
-            const paymentData = applePayToken.paymentData;
-            const header = paymentData.header;
+            const applePayPaymentData = applePayToken.paymentData;
+            const header = applePayPaymentData.header;
             const ephemeralPublicKey = header.ephemeralPublicKey;
-            const data = paymentData.data;
-            const signature = paymentData.signature;
-            const version = paymentData.version;
+            const data = applePayPaymentData.data;
+            const signature = applePayPaymentData.signature;
+            const version = applePayPaymentData.version;
             
             console.log('Apple Pay paymentData header:', header);
             console.log('Apple Pay paymentData version:', version);
