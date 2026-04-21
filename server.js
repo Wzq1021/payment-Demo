@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
 // Vercel Edge Config 配置
 let edgeConfigClient = null;
@@ -78,6 +79,10 @@ app.get('/', (req, res) => {
 
 // Environment Configuration
 let currentEnv = process.env.NODE_ENV || 'development';
+
+// Apple Pay Merchant Identity Certificate paths
+const merchantIdCertPath = path.join(__dirname, 'merchant_id.crt.pem');
+const merchantIdKeyPath = path.join(__dirname, 'merchant_id.key.pem');
 
 // Test Environment Configuration
 const testConfig = {
@@ -1421,6 +1426,51 @@ app.post('/api/environment', (req, res) => {
       success: false,
       message: 'Invalid environment. Must be "development" or "production"'
     });
+  }
+});
+
+// Apple Pay: Get merchant session
+app.post('/api/apple-pay/session', async (req, res) => {
+  try {
+    const { merchantIdentifier, displayName, initiative, initiativeContext } = req.body;
+    
+    if (!merchantIdentifier || !displayName || !initiative || !initiativeContext) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    // Check if merchant identity certificate files exist
+    const merchantIdCertExists = fs.existsSync(merchantIdCertPath);
+    const merchantIdKeyExists = fs.existsSync(merchantIdKeyPath);
+    
+    console.log('Merchant ID certificate exists:', merchantIdCertExists);
+    console.log('Merchant ID private key exists:', merchantIdKeyExists);
+    
+    if (!merchantIdCertExists || !merchantIdKeyExists) {
+      return res.status(500).json({ error: 'Merchant identity certificate or private key not found' });
+    }
+    
+    // Read merchant identity certificate and private key
+    const cert = fs.readFileSync(merchantIdCertPath);
+    const key = fs.readFileSync(merchantIdKeyPath);
+    
+    // Request merchant session from Apple Pay server
+    const response = await axios.post('https://apple-pay-gateway-cert.apple.com/paymentservices/paymentSession', {
+      merchantIdentifier,
+      displayName,
+      initiative,
+      initiativeContext
+    }, {
+      httpsAgent: new https.Agent({ cert, key }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('Apple Pay session response:', response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error getting Apple Pay session:', error);
+    res.status(500).json({ error: 'Failed to get Apple Pay session', details: error.message });
   }
 });
 
