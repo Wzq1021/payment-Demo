@@ -1572,7 +1572,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           cardInfo: {
             cardNumber: cardNumber,
             expiryDate: expiryDateFormatted,
-            holderName: holderName
+            holderName: holderName,
+            cvv: cvv
           }
         }
       },
