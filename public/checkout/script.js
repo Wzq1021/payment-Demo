@@ -1597,6 +1597,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         body: JSON.stringify(paymentData)
       });
       
+      // 检查响应状态
+      if (!response.ok) {
+        // 尝试获取错误信息
+        try {
+          const errorData = await response.json();
+          showToast('支付失败：' + (errorData.error || errorData.details || '未知错误'));
+        } catch (e) {
+          // 如果无法解析JSON，使用状态文本
+          showToast('支付失败：' + response.statusText);
+        }
+        return;
+      }
+      
+      // 检查响应内容类型
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        showToast('支付失败：服务器返回无效的响应格式');
+        return;
+      }
+      
+      // 尝试解析JSON
       const result = await response.json();
       
       if (result.result && result.result.code.startsWith('S')) {
