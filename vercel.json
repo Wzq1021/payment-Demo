@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "public/.well-known/(.*)",
+      "src": "public/(.*)",
       "use": "@vercel/static"
     }
   ],
@@ -18,6 +18,14 @@
     {
       "src": "/(.*)",
       "dest": "/server.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/.well-known/apple-developer-merchantid-domain-association",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain" }
+      ]
     }
   ]
 }
