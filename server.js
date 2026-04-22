@@ -81,8 +81,8 @@ app.get('/', (req, res) => {
 let currentEnv = process.env.NODE_ENV || 'development';
 
 // Apple Pay Merchant Identity Certificate paths
-const merchantIdCertPath = path.join(__dirname, 'merchant_id.crt.pem');
-const merchantIdKeyPath = path.join(__dirname, 'merchant_id.key.pem');
+const merchantIdCertPath = path.join(__dirname, 'identity.crt.pem');
+const merchantIdKeyPath = path.join(__dirname, 'identity.key.pem');
 
 // Test Environment Configuration
 const testConfig = {
@@ -1051,8 +1051,8 @@ app.post('/payment', async (req, res) => {
         // 读取 Apple Pay 证书
         const fs = require('fs');
         const path = require('path');
-        const certPath = path.join(__dirname, 'apple_pay.cer');
-        const keyPath = path.join(__dirname, 'ApplePay.key.pem');
+        const certPath = path.join(__dirname, 'identity.crt.pem');
+        const keyPath = path.join(__dirname, 'identity.key.pem');
         
         console.log('Apple Pay certificate path:', certPath);
         console.log('Apple Pay private key path:', keyPath);
