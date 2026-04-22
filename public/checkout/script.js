@@ -741,11 +741,11 @@ async function getApplePayMerchantSession() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        merchantIdentifier: 'merchant.evonettestdemo',
-        displayName: 'NEXUS PAY',
-        initiative: 'web',
-        initiativeContext: window.location.hostname
-      })
+              merchantIdentifier: 'platformintegrator.merchant.evonetdemo',
+              displayName: 'NEXUS PAY',
+              initiative: 'web',
+              initiativeContext: window.location.hostname
+            })
     });
     
     if (!sessionResponse.ok) {
@@ -1009,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (window.ApplePaySession) {
         // Safari 浏览器
         try {
-          const merchantIdentifier = 'merchant.evonettestdemo';
+          const merchantIdentifier = 'platformintegrator.merchant.evonetdemo';
           console.log('Checking Apple Pay with merchant ID:', merchantIdentifier);
           
           // 首先检查设备是否支持 Apple Pay
@@ -1027,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           
           if (!canMakePaymentsWithActiveCard) {
             console.log('Apple Pay is not available. Possible reasons:');
-            console.log('1. Merchant ID "merchant.evonettestdemo" is not properly configured in Apple Developer account');
+            console.log('1. Merchant ID "platformintegrator.merchant.evonetdemo" is not properly configured in Apple Developer account');
             console.log('2. Domain verification failed - ensure apple-developer-merchantid-domain-association.txt is accessible at:', window.location.origin + '/.well-known/');
             console.log('3. Apple Pay is not set up on this device or no active cards');
             console.log('4. The merchant ID does not match the one registered in Apple Developer');
@@ -1049,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               supportedMethods: 'https://apple.com/apple-pay',
               data: {
                 version: 12,
-                merchantIdentifier: 'merchant.evonettestdemo',
+                merchantIdentifier: 'platformintegrator.merchant.evonetdemo',
                 merchantCapabilities: ['supports3DS'],
                 supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
                 countryCode: 'HK',
@@ -1095,176 +1095,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return false;
       }
     }
-    
-    // 检查 Apple Pay 支持并显示/隐藏按钮
-    checkApplePaySupport().then(supported => {
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      
-      if (isSafari && supported) {
-        console.log('Apple Pay is supported in Safari, showing button');
-        applePayButton.style.display = 'block';
-      } else {
-        // 在Safari中但不支持Apple Pay，或非Safari浏览器，显示二维码扫描选项
-        if (isSafari) {
-          console.log('Apple Pay not available in Safari, showing QR code option');
-        } else {
-          console.log('Apple Pay button hidden in non-Safari browser');
-        }
-        
-        // 修改按钮文本，提示用户可以使用二维码扫描支付
-        applePayButton.style.display = 'block';
-        applePayButton.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
-            <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
-          </svg>
-          使用 iPhone 扫描支付
-        `;
-      }
-    });
-
-    // Apple Pay 按钮点击事件
-    applePayButton.addEventListener('click', async (event) => {
-      // 阻止事件冒泡，防止触发表单提交
-      event.stopPropagation();
-      // 阻止默认行为
-      event.preventDefault();
-      
-      console.log('Apple Pay button clicked');
-      const currentTotal = calculateTotal();
-      const amount = customAmount > 0 ? customAmount : currentTotal;
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      
-      console.log('Payment amount:', amount);
-      console.log('Is Safari browser:', isSafari);
-      
-      if (amount <= 0) {
-        showToast('请添加商品或设置支付金额');
-        return;
-      }
-
-      // 检查浏览器是否支持 Apple Pay
-      console.log('Checking browser support...');
-      console.log('window.ApplePaySession:', window.ApplePaySession);
-      console.log('window.PaymentRequest:', window.PaymentRequest);
-      
-      if (isSafari && window.ApplePaySession) {
-        // 使用 Apple Pay JS API (Safari)
-        console.log('Using Apple Pay JS API');
-        
-        try {
-          // 直接使用缓存的会话，避免在用户手势处理程序中进行异步操作
-          if (!applePayMerchantSession) {
-            throw new Error('No Apple Pay merchant session available');
-          }
-          
-          // 创建 Apple Pay 会话 - 确保在用户手势处理程序中直接创建
-          const session = new ApplePaySession(3, {
-            countryCode: 'HK',
-            currencyCode: 'HKD',
-            supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
-            merchantCapabilities: ['supports3DS'],
-            total: {
-              label: 'NEXUS PAY',
-              amount: amount.toFixed(2)
-            },
-            requiredBillingContactFields: ['email'],
-            merchantSession: applePayMerchantSession
-          });
-
-          // 处理支付处理
-          session.onpaymentauthorized = async (event) => {
-            try {
-              const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-              const merchantTransTime = new Date().toISOString();
-              
-              // 获取 Apple Pay 支付令牌
-              const token = event.payment.token;
-              console.log('Apple Pay token:', token);
-              
-              // 输出完整的 event.payment 对象
-              console.log('Full Apple Pay payment event:', event.payment);
-              
-              // 构建支付数据 - 直接将 Apple Pay 令牌发送到后端
-              const paymentData = {
-                merchantTransInfo: {
-                  merchantTransID: merchantTransID,
-                  merchantTransTime: merchantTransTime
-                },
-                transAmount: {
-                  currency: 'HKD',
-                  value: amount.toFixed(2)
-                },
-                paymentMethod: {
-                  type: 'token',
-                  token: {
-                    value: token.paymentMethod.network, // 临时使用 network 作为 token value
-                    type: 'networkToken',
-                    paymentBrand: token.paymentMethod.network === 'visa' ? 'Visa' : token.paymentMethod.network === 'masterCard' ? 'Mastercard' : token.paymentMethod.network,
-                    walletIdentifiers: 'ApplePay',
-                    expiryDate: '0000', // 临时值，实际需要从解密的 paymentData 中获取
-                    tokenCryptogram: 'temp_cryptogram', // 临时值，实际需要从解密的 paymentData 中获取
-                    eci: '7' // 临时值，实际需要从解密的 paymentData 中获取
-                  }
-                },
-                captureAfterHours: '0',
-                allowAuthentication: true,
-                returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
-                webhook: window.location.origin + '/webhook',
-                // 添加 Apple Pay 原始数据，供后端处理
-                applePayData: {
-                  paymentToken: token
-                }
-              };
-
-              // 输出完整的 paymentData
-              console.log('Complete paymentData being sent to server:', paymentData);
-
-              // 调用后端 API
-              const response = await fetch('/payment', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(paymentData)
-              });
-
-              const result = await response.json();
-              console.log('Apple Pay payment result:', result);
-
-              if (result.result && result.result.code.startsWith('S')) {
-                if (result.action && result.action.type === 'threeDSRedirect') {
-                  // 需要进行3DS认证
-                  session.completePayment(ApplePaySession.STATUS_SUCCESS);
-                  showToast('正在进行安全认证...');
-                  window.location.href = result.action.threeDSData.url;
-                } else {
-                  session.completePayment(ApplePaySession.STATUS_SUCCESS);
-                  showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
-                }
-              } else {
-                session.completePayment(ApplePaySession.STATUS_FAILURE);
-                showToast('支付失败：' + (result.result?.message || '未知错误'));
-              }
-            } catch (error) {
-              console.error('Apple Pay error:', error);
-              session.completePayment(ApplePaySession.STATUS_FAILURE);
-              showToast('支付失败，请重试');
-            }
-          };
-
-          // 开始 Apple Pay 会话
-          session.begin();
-        } catch (error) {
-          console.error('Error getting Apple Pay session:', error);
-          showToast('Apple Pay 初始化失败，请重试');
-          // 显示二维码扫描选项作为后备
-          showQRCodeForApplePay(amount);
-        }
-      } else {
-        // Safari中Apple Pay不可用，或非Safari浏览器，显示二维码扫描
-        showQRCodeForApplePay(amount);
-      }
-    });
     
     // 显示二维码供iPhone扫描支付
     function showQRCodeForApplePay(amount) {
@@ -1312,6 +1142,309 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       console.log('Generated QR code for payment:', paymentInfoUrl);
     }
+    
+    // 处理 Apple Pay 支付
+    async function processApplePayPayment(amount) {
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      console.log('Processing Apple Pay payment:', amount);
+      console.log('Is Safari browser:', isSafari);
+      
+      if (isSafari && window.ApplePaySession) {
+        // Safari 浏览器 - 使用 Apple Pay JS API
+        console.log('Using Apple Pay JS API');
+        
+        try {
+          // 获取 Apple Pay 商户会话
+          console.log('Getting Apple Pay merchant session...');
+          const sessionData = await getApplePayMerchantSession();
+          console.log('Apple Pay session data:', sessionData);
+          
+          // 创建 Apple Pay 会话
+          const session = new ApplePaySession(3, {
+            countryCode: 'HK',
+            currencyCode: 'HKD',
+            supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb'],
+            merchantCapabilities: ['supports3DS'],
+            total: {
+              label: 'NEXUS PAY',
+              amount: amount.toFixed(2)
+            },
+            requiredBillingContactFields: ['email']
+          });
+
+          // 验证商户
+          session.onvalidatemerchant = function(event) {
+            console.log('Validating merchant...');
+            session.completeMerchantValidation(sessionData);
+          };
+
+          // 处理支付授权
+          session.onpaymentauthorized = async function(event) {
+            try {
+              const merchantTransID = 'pay_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+              const merchantTransTime = new Date().toISOString();
+              
+              // 获取 Apple Pay 支付令牌
+              const token = event.payment.token;
+              console.log('Apple Pay token:', token);
+              
+              // 构建支付数据
+              const paymentData = {
+                merchantTransInfo: {
+                  merchantTransID: merchantTransID,
+                  merchantTransTime: merchantTransTime
+                },
+                transAmount: {
+                  currency: 'HKD',
+                  value: amount.toFixed(2)
+                },
+                paymentMethod: {
+                  type: 'token',
+                  token: {
+                    value: token.paymentMethod.network,
+                    type: 'networkToken',
+                    paymentBrand: token.paymentMethod.network === 'visa' ? 'Visa' : token.paymentMethod.network === 'masterCard' ? 'Mastercard' : token.paymentMethod.network,
+                    walletIdentifiers: 'ApplePay',
+                    expiryDate: '0000',
+                    tokenCryptogram: 'temp_cryptogram',
+                    eci: '7'
+                  }
+                },
+                captureAfterHours: '0',
+                allowAuthentication: true,
+                returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(merchantTransID)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
+                webhook: window.location.origin + '/webhook',
+                applePayData: {
+                  paymentToken: token
+                }
+              };
+
+              // 调用后端 API
+              const response = await fetch('/payment', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(paymentData)
+              });
+
+              const result = await response.json();
+              console.log('Apple Pay payment result:', result);
+
+              if (result.result && result.result.code.startsWith('S')) {
+                if (result.action && result.action.type === 'threeDSRedirect') {
+                  // 需要进行3DS认证
+                  session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                  showToast('正在进行安全认证...');
+                  window.location.href = result.action.threeDSData.url;
+                } else {
+                  session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                  showPaymentSuccess(merchantTransID, amount, 'Apple Pay');
+                }
+              } else {
+                session.completePayment(ApplePaySession.STATUS_FAILURE);
+                showToast('支付失败：' + (result.result?.message || '未知错误'));
+              }
+            } catch (error) {
+              console.error('Apple Pay error:', error);
+              session.completePayment(ApplePaySession.STATUS_FAILURE);
+              showToast('支付失败，请重试');
+            }
+          };
+
+          // 处理支付取消
+          session.oncancel = function() {
+            console.log('Payment cancelled by user');
+          };
+
+          // 开始支付会话
+          session.begin();
+          
+        } catch (error) {
+          console.error('Error processing Apple Pay:', error);
+          showToast('Apple Pay 初始化失败，请重试');
+          // 显示二维码扫描选项作为后备
+          showQRCodeForApplePay(amount);
+        }
+      } else if (window.PaymentRequest) {
+        // 其他支持 Payment Request API 的浏览器
+        console.log('Using Payment Request API');
+        
+        try {
+          // 创建 PaymentRequest 对象
+          const supportedInstruments = [
+            {
+              supportedMethods: 'https://apple.com/apple-pay',
+              data: {
+                version: 3,
+                merchantIdentifier: 'platformintegrator.merchant.evonetdemo',
+                countryCode: 'HK',
+                currencyCode: 'HKD',
+                merchantCapabilities: ['supports3DS'],
+                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover', 'jcb', 'unionPay'],
+              }
+            }
+          ];
+          
+          const paymentDetails = {
+            total: {
+              label: 'NEXUS PAY',
+              amount: {
+                currency: 'HKD',
+                value: amount.toFixed(2)
+              }
+            }
+          };
+          
+          const paymentRequest = new PaymentRequest(supportedInstruments, paymentDetails);
+          console.log('Created PaymentRequest object');
+          
+          const paymentResponse = await paymentRequest.show();
+          console.log('Payment response:', paymentResponse);
+          
+          // 处理支付数据
+          const paymentToken = paymentResponse.details;
+          console.log('Payment token:', paymentToken);
+          
+          // 调用 Direct API 进行支付
+          const orderId = 'pay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+          
+          // 构建支付数据
+          const paymentData = {
+            merchantTransInfo: {
+              merchantTransID: orderId,
+              merchantTransTime: new Date().toISOString()
+            },
+            transAmount: {
+              currency: 'HKD',
+              value: amount.toFixed(2)
+            },
+            paymentMethod: {
+              type: 'token',
+              token: {
+                value: paymentToken.paymentMethod?.network || 'apple-pay',
+                type: 'networkToken',
+                paymentBrand: paymentToken.paymentMethod?.network === 'visa' ? 'Visa' : paymentToken.paymentMethod?.network === 'masterCard' ? 'Mastercard' : 'Apple Pay',
+                walletIdentifiers: 'ApplePay',
+                expiryDate: '0000',
+                tokenCryptogram: 'temp_cryptogram',
+                eci: '7'
+              }
+            },
+            captureAfterHours: '0',
+            allowAuthentication: true,
+            returnURL: `${window.location.origin}/checkout/index.html?payment=success&orderId=${encodeURIComponent(orderId)}&amount=${encodeURIComponent(amount.toFixed(2))}&method=Apple%20Pay`,
+            webhook: window.location.origin + '/webhook',
+            applePayData: {
+              paymentToken: paymentToken
+            }
+          };
+
+          // 调用后端 API
+          const response = await fetch('/payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentData)
+          });
+
+          const result = await response.json();
+          console.log('Apple Pay payment result:', result);
+
+          if (result.result && result.result.code.startsWith('S')) {
+            await paymentResponse.complete('success');
+            showPaymentSuccess(orderId, amount, 'Apple Pay');
+          } else {
+            await paymentResponse.complete('failure');
+            showToast('Payment failed: ' + (result.result?.message || 'Unknown error'));
+          }
+        } catch (error) {
+          console.error('Error with Payment Request API:', error);
+          showToast('Payment failed: ' + error.message);
+          // 显示二维码扫描选项作为后备
+          showQRCodeForApplePay(amount);
+        }
+      } else {
+        // 不支持 Apple Pay 的浏览器，显示二维码
+        console.log('Apple Pay not supported, showing QR code option');
+        showQRCodeForApplePay(amount);
+      }
+    }
+    
+    // 检查 Apple Pay 支持并显示/隐藏按钮
+    checkApplePaySupport().then(supported => {
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      if (isSafari && supported) {
+        console.log('Apple Pay is supported in Safari, showing button');
+        applePayButton.style.display = 'block';
+      } else {
+        // 在Safari中但不支持Apple Pay，或非Safari浏览器，显示二维码扫描选项
+        if (isSafari) {
+          console.log('Apple Pay not available in Safari, showing QR code option');
+        } else {
+          console.log('Apple Pay button hidden in non-Safari browser');
+        }
+        
+        // 隐藏 Apple Pay 按钮，因为不支持
+        applePayButton.style.display = 'none';
+        
+        // 创建一个新的扫码支付按钮
+        const scanPayButton = document.createElement('button');
+        scanPayButton.id = 'scan-pay-button';
+        scanPayButton.className = 'w-full py-4 rounded-xl flex items-center justify-center';
+        scanPayButton.style.cssText = 'background-color: #000000; color: white; font-size: 16px; font-weight: 500;';
+        scanPayButton.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
+            <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
+          </svg>
+          使用 iPhone 扫描支付
+        `;
+        
+        // 添加到 Apple Pay 按钮的父容器
+        applePayButton.parentNode.appendChild(scanPayButton);
+        
+        // 添加点击事件处理
+        scanPayButton.addEventListener('click', async (event) => {
+          // 阻止事件冒泡，防止触发表单提交
+          event.stopPropagation();
+          // 阻止默认行为
+          event.preventDefault();
+          
+          const currentTotal = calculateTotal();
+          const amount = customAmount > 0 ? customAmount : currentTotal;
+          
+          if (amount <= 0) {
+            showToast('请添加商品或设置支付金额');
+            return;
+          }
+          
+          // 处理 Apple Pay 支付
+          processApplePayPayment(amount);
+        });
+      }
+    });
+
+    // Apple Pay 按钮点击事件
+    applePayButton.addEventListener('click', async (event) => {
+      // 阻止事件冒泡，防止触发表单提交
+      event.stopPropagation();
+      // 阻止默认行为
+      event.preventDefault();
+      
+      const currentTotal = calculateTotal();
+      const amount = customAmount > 0 ? customAmount : currentTotal;
+      
+      if (amount <= 0) {
+        showToast('请添加商品或设置支付金额');
+        return;
+      }
+
+      // 处理 Apple Pay 支付
+      processApplePayPayment(amount);
+    });
   }
 
   // Direct API 支付表单提交
