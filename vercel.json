@@ -16,13 +16,13 @@
       "dest": "/public/home.html"
     },
     {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/public/$1",
       "status": 200
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
     }
   ],
   "headers": [
