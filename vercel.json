@@ -12,6 +12,10 @@
   ],
   "routes": [
     {
+      "src": "^/$",
+      "dest": "/public/home.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/public/$1",
       "status": 200
