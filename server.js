@@ -491,7 +491,7 @@ app.post('/linkpay/webhook', async (req, res) => {
   const method = 'POST';
   const urlPath = '/linkpay/webhook';
   const bodyString = JSON.stringify(req.body);
-  const stringToSign = [method, urlPath, dateTime, keyLinkPay, msgID, bodyString].join('\n');
+  const stringToSign = [method, urlPath, dateTime, getKeyLinkPay(), msgID, bodyString].join('\n');
   const computedSign = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
   console.log('[Sign Debug]', { stringToSign, computedSign, receivedSign });
@@ -1037,10 +1037,12 @@ app.post('/dropin/webhook', async (req, res) => {
 // Direct API: Process Payment
 app.post('/payment', async (req, res) => {
   try {
-    let paymentData = req.body;
-    
+    // 记录请求头
     console.log('=== Direct API Payment Request ===');
-    console.log('Request Body:', JSON.stringify(paymentData, null, 2));
+    console.log('Request Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Parsed Payment Data:', JSON.stringify(req.body, null, 2));
+    
+    let paymentData = req.body;
     
     // 处理 Apple Pay 支付
     if (paymentData.applePayData && paymentData.applePayData.paymentToken) {
@@ -1049,8 +1051,6 @@ app.post('/payment', async (req, res) => {
       
       try {
         // 读取 Apple Pay 证书
-        const fs = require('fs');
-        const path = require('path');
         const certPath = path.join(__dirname, 'identity.crt.pem');
         const keyPath = path.join(__dirname, 'identity.key.pem');
         
@@ -1086,7 +1086,6 @@ app.post('/payment', async (req, res) => {
             const privateKeyPem = fs.readFileSync(keyPath, 'utf8');
             
             // 3. 生成共享密钥（使用 crypto 模块实现 ECDH 密钥交换）
-            const crypto = require('crypto');
             
             // 解析 ephemeralPublicKey（Base64 编码）
             const ephemeralPublicKeyBuffer = Buffer.from(ephemeralPublicKey, 'base64');
@@ -1477,6 +1476,5 @@ app.post('/api/apple-pay/session', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on:
-    - http://localhost:${PORT}
-    - http://10.30.1.104:${PORT}`);
+    - http://localhost:${PORT}`);
 });
