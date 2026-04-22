@@ -1421,9 +1421,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         } catch (error) {
           console.error('Error with Payment Request API:', error);
-          showToast('Payment failed: ' + error.message);
-          // 显示二维码扫描选项作为后备
-          showQRCodeForApplePay(amount);
+          // 检查是否是用户取消支付
+          if (error.name === 'AbortError' || error.message.includes('User cancelled') || error.message.includes('cancelled')) {
+            console.log('User cancelled Payment Request');
+            showToast('支付已取消');
+            // 不显示二维码，因为用户主动取消了
+          } else {
+            showToast('Payment failed: ' + error.message);
+            // 显示二维码扫描选项作为后备
+            showQRCodeForApplePay(amount);
+          }
         }
       } else {
         // 不支持 Apple Pay 的浏览器，显示二维码
@@ -1433,57 +1440,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // 检查 Apple Pay 支持并显示/隐藏按钮
-    checkApplePaySupport().then(supported => {
+    function updateApplePayButton() {
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       
-      if (isSafari && supported) {
-        console.log('Apple Pay is supported in Safari, showing button');
-        applePayButton.style.display = 'block';
-      } else {
-        // 在Safari中但不支持Apple Pay，或非Safari浏览器，显示二维码扫描选项
-        if (isSafari) {
-          console.log('Apple Pay not available in Safari, showing QR code option');
+      // 首先移除可能存在的扫码支付按钮
+      const existingScanButton = document.getElementById('scan-pay-button');
+      if (existingScanButton) {
+        existingScanButton.remove();
+      }
+      
+      checkApplePaySupport().then(supported => {
+        if (isSafari && supported) {
+          console.log('Apple Pay is supported in Safari, showing button');
+          applePayButton.style.display = 'block';
         } else {
-          console.log('Apple Pay button hidden in non-Safari browser');
-        }
-        
-        // 隐藏 Apple Pay 按钮，因为不支持
-        applePayButton.style.display = 'none';
-        
-        // 创建一个新的扫码支付按钮
-        const scanPayButton = document.createElement('button');
-        scanPayButton.id = 'scan-pay-button';
-        scanPayButton.className = 'w-full py-4 rounded-xl flex items-center justify-center';
-        scanPayButton.style.cssText = 'background-color: #000000; color: white; font-size: 16px; font-weight: 500;';
-        scanPayButton.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
-            <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
-          </svg>
-          使用 iPhone 扫描支付
-        `;
-        
-        // 添加到 Apple Pay 按钮的父容器
-        applePayButton.parentNode.appendChild(scanPayButton);
-        
-        // 添加点击事件处理
-        scanPayButton.addEventListener('click', async (event) => {
-          // 阻止事件冒泡，防止触发表单提交
-          event.stopPropagation();
-          // 阻止默认行为
-          event.preventDefault();
-          
-          const currentTotal = calculateTotal();
-          const amount = customAmount > 0 ? customAmount : currentTotal;
-          
-          if (amount <= 0) {
-            showToast('请添加商品或设置支付金额');
-            return;
+          // 在Safari中但不支持Apple Pay，或非Safari浏览器，显示二维码扫描选项
+          if (isSafari) {
+            console.log('Apple Pay not available in Safari, showing QR code option');
+          } else {
+            console.log('Apple Pay button hidden in non-Safari browser');
           }
           
-          // 处理 Apple Pay 支付
-          processApplePayPayment(amount);
-        });
-      }
+          // 隐藏 Apple Pay 按钮，因为不支持
+          applePayButton.style.display = 'none';
+          
+          // 创建一个新的扫码支付按钮
+          const scanPayButton = document.createElement('button');
+          scanPayButton.id = 'scan-pay-button';
+          scanPayButton.className = 'w-full py-4 rounded-xl flex items-center justify-center';
+          scanPayButton.style.cssText = 'background-color: #000000; color: white; font-size: 16px; font-weight: 500;';
+          scanPayButton.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="mr-2">
+              <path d="M17.571 5.429c-.535 0-1.069.09-1.571.256 1.105-1.982 1.714-4.256 1.714-6.685 0-.34-.273-.617-.607-.617H8.714c-.334 0-.607.277-.607.617 0 2.429.609 4.703 1.714 6.685-.502-.166-1.036-.256-1.571-.256-2.761 0-5 2.239-5 5s2.239 5 5 5c1.307 0 2.47-.514 3.365-1.341-1.592.193-3.288.341-5.036.341-3.859 0-7-3.141-7-7s3.141-7 7-7c1.881 0 3.628.322 5.286.902-.216.613-.365 1.264-.446 1.945-.194.139-.377.291-.545.455-.385.385-.755.779-1.098 1.198-.032.04-.065.08-.1.119 1.197.319 2.285.85 3.205 1.559.035.029.067.061.1.093.343.319.674.647.992.984.256.266.484.552.679.856.194.304.354.626.476.964.122.338.188.703.188 1.077 0 .374-.066.739-.188 1.077-.122.338-.282.66-.476.964-.195.304-.423.59-.679.856-.318.337-.649.665-.992.984-.033.032-.065.064-.1.093-.92-.709-2.008-1.24-3.205-1.559.035-.039.068-.079.1-.119.343-.419.713-.813 1.098-1.198.168-.164.351-.316.545-.455.081-.681.23-1.332.446-1.945-1.658-.58-3.405-.902-5.286-.902-3.859 0-7 3.141-7 7s3.141 7 7 7c1.748 0 3.444-.148 5.036-.341 1.219 1.074 2.766 1.746 4.5 1.941l.643.049c.313.023.552-.245.529-.558l-.587-4.115c-.023-.164.023-.332.128-.461.098-.122.23-.22.382-.277l4.006-.947c.264-.063.455.197.396.462l-1.015 3.881c-.043.164.004.336.106.464.102.128.241.222.396.27l3.972.939c.27.063.464-.197.396-.462l-1.05-4.045c-.049-.19-.008-.392.119-.549.137-.172.34-.273.556-.273h1.036c.313 0 .575-.262.552-.575l-1.5-17.5c-.023-.273-.287-.482-.575-.459l-.571.036c-1.842.128-3.556.732-5.036 1.772.961-.682 2.056-1.216 3.256-1.593z"/>
+            </svg>
+            使用 iPhone 扫描支付
+          `;
+          
+          // 添加到 Apple Pay 按钮的父容器
+          applePayButton.parentNode.appendChild(scanPayButton);
+          
+          // 添加点击事件处理
+          scanPayButton.addEventListener('click', async (event) => {
+            // 阻止事件冒泡，防止触发表单提交
+            event.stopPropagation();
+            // 阻止默认行为
+            event.preventDefault();
+            
+            const currentTotal = calculateTotal();
+            const amount = customAmount > 0 ? customAmount : currentTotal;
+            
+            if (amount <= 0) {
+              showToast('请添加商品或设置支付金额');
+              return;
+            }
+            
+            // 处理 Apple Pay 支付
+            processApplePayPayment(amount);
+          });
+        }
+      });
+    }
+    
+    // 初始检查
+    updateApplePayButton();
+    
+    // 当切换到direct API支付方式时，更新Apple Pay按钮状态
+    document.querySelectorAll('.payment-method-card').forEach(card => {
+      card.addEventListener('click', () => {
+        setTimeout(() => {
+          if (document.getElementById('direct-api-container').style.display !== 'none') {
+            updateApplePayButton();
+          }
+        }, 100);
+      });
     });
 
     // Apple Pay 按钮点击事件
